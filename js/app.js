@@ -10,6 +10,7 @@ import { initAuth, signInWithGoogle, signInWithEmail, registerWithEmail, signOut
 import { createEvent, placeBet, lockBets, resolveEvent, subscribeToPool } from './betting.js';
 import { drawQRCode } from './qr.js';
 import * as TTS from './tts-service.js';
+import { calcPenalty } from './race-engine.js';
 
 // State
 let horses = initHorses();
@@ -245,10 +246,38 @@ function drawScene() {
 
 // ---- RACE EVENTS ----
 
+// Throttle miss commentary so we don't overwhelm the TTS queue
+let lastMissCommentTime = 0;
+let lastStreakCommentTime = 0;
+const MISS_COMMENT_COOLDOWN = 4; // seconds between miss comments
+const STREAK_COMMENT_COOLDOWN = 8; // seconds between streak comments
+const STREAK_THRESHOLD = 8; // only comment on streaks >= this
+
 function handleRaceEvents(events) {
   events.forEach(ev => {
     if (ev.type === 'answer') {
       addLog(ev.horseId, ev.qNum, ev.subject, ev.correct);
+
+      const h = horses[ev.horseId];
+
+      // Miss commentary — nearly constant but throttled
+      if (!ev.correct && TTS.isReady() && elapsed - lastMissCommentTime > MISS_COMMENT_COOLDOWN) {
+        const penaltySec = calcPenalty(h.cumulativeWrongs);
+        const commentary = TTS.generateMissCommentary(h.name, ev.subject, penaltySec, ev.qNum);
+        TTS.speak(commentary);
+        addFeed(`❌ ${commentary}`, elapsed);
+        lastMissCommentTime = elapsed;
+      }
+
+      // Streak commentary — celebrate hot streaks
+      if (ev.correct && h.streak >= STREAK_THRESHOLD && h.streak % 4 === 0
+          && elapsed - lastStreakCommentTime > STREAK_COMMENT_COOLDOWN) {
+        const commentary = TTS.generateStreakCommentary(h.name, ev.subject, h.streak);
+        TTS.speak(commentary);
+        addFeed(`🔥 ${commentary}`, elapsed);
+        lastStreakCommentTime = elapsed;
+      }
+
     } else if (ev.type === 'finish') {
       onFinish(horses[ev.horseId]);
     }
@@ -381,6 +410,9 @@ window.resetRace = function() {
   SPEED = 1;
   currentEventId = null;
   TTS.stop(); // Stop any ongoing TTS
+  TTS.resetCommentary(); // Reset template tracking
+  lastMissCommentTime = 0;
+  lastStreakCommentTime = 0;
   if (poolUnsub) { poolUnsub(); poolUnsub = null; }
   livePools = {};
 
