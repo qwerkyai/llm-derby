@@ -156,6 +156,20 @@ body::before {
 .modal-toggle a { color:var(--gold); text-decoration:none; }
 .modal-toggle a:hover { text-decoration:underline; }
 
+/* INFO BUTTON & MODAL */
+.bdg-info { background:rgba(109,140,255,0.1); border:1px solid rgba(109,140,255,0.25); color:var(--h1); cursor:pointer; transition:all 0.2s; }
+.bdg-info:hover { background:rgba(109,140,255,0.2); border-color:rgba(109,140,255,0.4); }
+.info-modal { width:480px; max-height:80vh; overflow-y:auto; }
+.info-modal::-webkit-scrollbar { width:4px; }
+.info-modal::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+.info-body { margin-top:16px; }
+.info-section { margin-bottom:16px; }
+.info-section h3 { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; margin-bottom:6px; }
+.info-section p { font-size:13px; line-height:1.6; color:var(--text); }
+.info-horses { display:flex; flex-direction:column; gap:6px; }
+.info-horse { font-size:12px; display:flex; align-items:center; gap:8px; }
+.info-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
 /* BETTING CONTROLS */
 .btn-sm { font-size:11px; padding:5px 14px; }
 .bet-input-row { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }

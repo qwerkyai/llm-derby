@@ -27,7 +27,7 @@ async function ensureFirebase() {
     const { getAuth, onAuthStateChanged: onASC, signInWithPopup, GoogleAuthProvider,
             signInWithEmailAndPassword, createUserWithEmailAndPassword,
             updateProfile, signOut: fbSignOut } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
-    const { getFirestore, doc, getDoc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
 
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
@@ -39,14 +39,17 @@ async function ensureFirebase() {
       signInWithEmailAndPassword, createUserWithEmailAndPassword,
       updateProfile, signOut: fbSignOut
     };
-    window._fbStore = { doc, getDoc, setDoc, serverTimestamp };
+    window._fbStore = { doc, getDoc, setDoc, updateDoc, serverTimestamp };
 
     // Auth state listener
     onASC(auth, async (user) => {
       currentUser = user;
       if (user) {
-        // Ensure user doc exists in Firestore
-        await ensureUserDoc(user);
+        try {
+          await ensureUserDoc(user);
+        } catch (err) {
+          console.error('Failed to ensure user doc:', err);
+        }
       }
       authStateCallbacks.forEach(cb => cb(user));
     });
@@ -59,9 +62,10 @@ async function ensureFirebase() {
 }
 
 // Create user doc on first login with 100 starting balance
+// Also update displayName if it was previously missing (e.g., Google sign-in)
 async function ensureUserDoc(user) {
   if (!db) return;
-  const { doc, getDoc, setDoc, serverTimestamp } = window._fbStore;
+  const { doc, getDoc, setDoc, updateDoc, serverTimestamp } = window._fbStore;
   const userRef = doc(db, 'users', user.uid);
   const snap = await getDoc(userRef);
   if (!snap.exists()) {
@@ -70,6 +74,12 @@ async function ensureUserDoc(user) {
       balance: 100,
       createdAt: serverTimestamp()
     });
+  } else {
+    // Update displayName if Firestore has 'Anonymous' but user now has a real name
+    const data = snap.data();
+    if (user.displayName && (!data.displayName || data.displayName === 'Anonymous' || data.displayName === user.email)) {
+      await updateDoc(userRef, { displayName: user.displayName });
+    }
   }
 }
 

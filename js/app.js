@@ -51,8 +51,13 @@ onAuthStateChanged(async (user) => {
       avatar.textContent = (user.displayName || user.email || 'U')[0].toUpperCase();
     }
     // Load balance
-    const balance = await getUserBalance(user.uid);
-    document.getElementById('userBal').textContent = balance;
+    try {
+      const balance = await getUserBalance(user.uid);
+      document.getElementById('userBal').textContent = balance;
+    } catch (err) {
+      console.error('Failed to load balance:', err);
+      document.getElementById('userBal').textContent = '?';
+    }
     setupBetBtn.style.display = 'inline-block';
     hideAuthModal();
   } else {
@@ -127,6 +132,32 @@ function showAuthError(msg) {
   el.style.display = 'block';
 }
 
+// ---- INFO MODAL ----
+
+window.showInfoModal = function() {
+  document.getElementById('infoModal').style.display = 'flex';
+};
+
+window.hideInfoModal = function() {
+  document.getElementById('infoModal').style.display = 'none';
+};
+
+// Close modals on overlay click
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'infoModal') window.hideInfoModal();
+  if (e.target.id === 'authModal') window.hideAuthModal();
+});
+
+// Close modals on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const infoModal = document.getElementById('infoModal');
+    const authModal = document.getElementById('authModal');
+    if (infoModal && infoModal.style.display !== 'none') window.hideInfoModal();
+    if (authModal && authModal.style.display !== 'none') window.hideAuthModal();
+  }
+});
+
 // ---- BETTING UI ----
 
 window.setupBetting = async function() {
@@ -148,6 +179,7 @@ window.setupBetting = async function() {
     });
   } catch (err) {
     console.error('Setup betting failed:', err);
+    document.getElementById('betStatus').textContent = 'Error: ' + err.message;
   }
 };
 

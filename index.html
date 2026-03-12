@@ -4,6 +4,43 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LLM Derby — MMLU-Pro Hard Benchmark Race</title>
+
+<!-- SEO -->
+<meta name="description" content="Watch AI models race head-to-head on MMLU-Pro Hard benchmarks. Bet with virtual tokens on Llama 3.1 3B, Qre Llama 3B, and Qre Llama 8B in real-time. Built by Qwerky AI for NVIDIA GTC 2026.">
+<meta name="keywords" content="LLM, AI, benchmark, MMLU-Pro, Llama, Qwerky AI, horse racing, machine learning, inference optimization">
+<meta name="author" content="Qwerky AI">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://llm-derby.web.app">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://llm-derby.web.app">
+<meta property="og:title" content="LLM Derby — AI Models Race Head-to-Head">
+<meta property="og:description" content="Watch AI models race on MMLU-Pro Hard benchmarks. Bet virtual tokens on your favorite LLM. Built by Qwerky AI for NVIDIA GTC 2026.">
+<meta property="og:image" content="https://llm-derby.web.app/og-image.svg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="LLM Derby">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://llm-derby.web.app">
+<meta name="twitter:title" content="LLM Derby — AI Models Race Head-to-Head">
+<meta name="twitter:description" content="Watch AI models race on MMLU-Pro Hard benchmarks. Bet virtual tokens on your favorite LLM. Built by Qwerky AI for NVIDIA GTC 2026.">
+<meta name="twitter:image" content="https://llm-derby.web.app/og-image.svg">
+
+<!-- Slack / Discord unfurl -->
+<meta property="og:image:alt" content="Three AI models racing on a horse track — LLM Derby benchmark visualization">
+
+<!-- LinkedIn -->
+<meta property="article:author" content="Qwerky AI">
+
+<!-- Theme & Favicon -->
+<meta name="theme-color" content="#050810">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏇</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Libre+Bodoni:wght@700&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -27,6 +64,43 @@
   <div class="badges">
     <span class="bdg bdg-m">📊 MMLU-Pro Hard · 300 Qs · 10-Way MCQ</span>
     <span class="bdg bdg-l" id="liveBdg"><span class="dt"></span>LIVE</span>
+    <button class="bdg bdg-info" id="infoBtn" onclick="showInfoModal()">❓ What is this?</button>
+  </div>
+</div>
+
+<!-- Info Modal -->
+<div class="modal-overlay" id="infoModal" style="display:none">
+  <div class="modal info-modal">
+    <button class="modal-close" onclick="hideInfoModal()">&times;</button>
+    <h2 class="modal-title">🏇 What is LLM Derby?</h2>
+    <p class="modal-sub">AI Benchmark Racing — Made Fun</p>
+    <div class="info-body">
+      <div class="info-section">
+        <h3>The Race</h3>
+        <p>Three AI models compete head-to-head answering 300 MMLU-Pro Hard questions — one of the toughest academic benchmarks in AI. Each question is 10-way multiple choice requiring multi-step reasoning across subjects like math, physics, law, and more.</p>
+      </div>
+      <div class="info-section">
+        <h3>The Horses</h3>
+        <div class="info-horses">
+          <div class="info-horse"><span class="info-dot" style="background:var(--h1)"></span> <strong>Llama 3.1 3B</strong> — Meta's base model (3B parameters)</div>
+          <div class="info-horse"><span class="info-dot" style="background:var(--h2)"></span> <strong>Qre Llama 3B</strong> — Qwerky AI's optimized 3B model</div>
+          <div class="info-horse"><span class="info-dot" style="background:var(--h3)"></span> <strong>Qre Llama 8B</strong> — Qwerky AI's optimized 8B model</div>
+        </div>
+      </div>
+      <div class="info-section">
+        <h3>How It Works</h3>
+        <p>Models race around the track as they answer questions. Correct answers advance the horse forward. Wrong answers trigger a time penalty — and penalties increase with each mistake. The first model to complete all 300 questions wins!</p>
+      </div>
+      <div class="info-section">
+        <h3>Betting</h3>
+        <p>Sign in to place virtual bets using tokens (everyone starts with 100). Betting uses a parimutuel system — the entire pool is split among winners proportional to their bets. Set up betting before the race starts, then watch the odds shift in real-time!</p>
+      </div>
+      <div class="info-section">
+        <h3>Built By</h3>
+        <p><strong>Qwerky AI</strong> optimizes Llama model inference using a custom SSM (State Space Model) architecture — delivering up to 2x throughput, 25-40% cost reduction, and 2x energy savings on NVIDIA hardware.</p>
+        <p style="margin-top:6px"><a href="https://qwerky.ai" target="_blank" rel="noopener" style="color:var(--gold)">qwerky.ai</a> · NVIDIA GTC 2026</p>
+      </div>
+    </div>
   </div>
 </div>
 

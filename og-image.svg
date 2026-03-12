@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" style="stop-color:#0c1020"/>
+      <stop offset="100%" style="stop-color:#050810"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8b830"/>
+      <stop offset="50%" style="stop-color:#fff4cc"/>
+      <stop offset="100%" style="stop-color:#c49518"/>
+    </linearGradient>
+    <linearGradient id="track" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3a2a0a"/>
+      <stop offset="100%" style="stop-color:#2a1a05"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Track oval -->
+  <ellipse cx="600" cy="340" rx="420" ry="180" fill="none" stroke="url(#track)" stroke-width="60" opacity="0.6"/>
+  <ellipse cx="600" cy="340" rx="420" ry="180" fill="none" stroke="#e8b830" stroke-width="2" opacity="0.3"/>
+  <ellipse cx="600" cy="340" rx="390" ry="150" fill="#0a1218" opacity="0.8"/>
+  <!-- Horses -->
+  <circle cx="340" cy="220" r="14" fill="#6d8cff" opacity="0.9"/>
+  <circle cx="370" cy="235" r="14" fill="#ff5e8a" opacity="0.9"/>
+  <circle cx="310" cy="210" r="14" fill="#00d4a0" opacity="0.9"/>
+  <!-- Title -->
+  <text x="600" y="100" text-anchor="middle" font-family="serif" font-size="16" fill="#e8b830" opacity="0.4" letter-spacing="7">CHAMPIONSHIP SERIES</text>
+  <text x="600" y="155" text-anchor="middle" font-family="serif" font-weight="700" font-size="64" fill="url(#gold)" letter-spacing="3">LLM DERBY</text>
+  <text x="600" y="190" text-anchor="middle" font-family="monospace" font-size="14" fill="#e8b830" opacity="0.5" letter-spacing="5">MMLU-PRO HARD · BENCHMARK RACE</text>
+  <!-- Horse labels -->
+  <text x="310" y="195" text-anchor="middle" font-family="monospace" font-size="11" fill="#00d4a0">Qre Llama 8B</text>
+  <text x="340" y="243" text-anchor="middle" font-family="monospace" font-size="11" fill="#6d8cff">Llama 3.1 3B</text>
+  <text x="395" y="255" text-anchor="middle" font-family="monospace" font-size="11" fill="#ff5e8a">Qre Llama 3B</text>
+  <!-- Footer -->
+  <text x="600" y="560" text-anchor="middle" font-family="monospace" font-size="13" fill="#e8b830" opacity="0.4">Powered by QDistill · qwerky.ai · NVIDIA GTC 2026</text>
+  <!-- Border -->
+  <rect x="1" y="1" width="1198" height="628" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1" rx="8"/>
+</svg>
