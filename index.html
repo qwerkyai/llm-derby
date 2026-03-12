@@ -155,12 +155,12 @@
     <div class="tts-ready-ctrls" id="ttsReadyCtrls" style="display:none">
       <button class="btn btn-tts-mute" id="ttsMuteBtn" onclick="toggleMute()">🔊</button>
       <select class="tts-voice-select" id="ttsVoice" onchange="changeTTSVoice(this.value)">
-        <option value="am_michael">Michael</option>
+        <option value="am_adam">Adam</option>
       </select>
       <div class="tts-speed-ctrl">
         <label>🗣️</label>
-        <input type="range" id="ttsSpeed" min="0.5" max="1.5" step="0.1" value="1.2" oninput="changeTTSSpeed(this.value)">
-        <span id="ttsSpeedVal">1.2×</span>
+        <input type="range" id="ttsSpeed" min="0.8" max="2.0" step="0.1" value="1.4" oninput="changeTTSSpeed(this.value)">
+        <span id="ttsSpeedVal">1.4×</span>
       </div>
     </div>
     <div class="tts-loading" id="ttsLoading" style="display:none">
