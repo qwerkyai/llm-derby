@@ -12,6 +12,7 @@ let annQueue = [];
 let annTimer = null;
 let lastLead = -1;
 let milestones = {};
+let lastTiedCall = 0;
 
 // ---- ANNOUNCER ----
 
@@ -61,9 +62,11 @@ export function checkAnnouncements(horses, elapsed) {
     });
   });
 
-  if (elapsed > 10 && Math.random() < 0.005) {
+  // "Virtually tied" — max once per 30 seconds
+  if (elapsed > 10 && Math.random() < 0.002 && elapsed - lastTiedCall > 30) {
     const gap = Math.abs(sorted[0].progress - sorted[1].progress);
-    if (gap < 0.03) {
+    if (gap < 0.02) {
+      lastTiedCall = elapsed;
       announce('🔥', `Neck and neck! <b>${sorted[0].name}</b> and <b>${sorted[1].name}</b> are virtually tied!`);
     }
   }
@@ -186,6 +189,7 @@ export function spawnConfetti() {
 export function resetUI(horses) {
   lastLead = -1;
   milestones = {};
+  lastTiedCall = 0;
   annQueue = [];
   if (annTimer) { clearTimeout(annTimer); annTimer = null; }
   document.getElementById('ann').classList.remove('active');
