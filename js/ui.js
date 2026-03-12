@@ -3,6 +3,7 @@
 // ============================================================
 
 import { TQ } from './race-engine.js';
+import { speak, isReady as ttsReady } from './tts-service.js';
 
 const CHOICES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 
@@ -17,6 +18,11 @@ let milestones = {};
 export function announce(icon, text, dur) {
   annQueue.push({ icon, text, dur: dur || 4000 });
   if (!annTimer) showNextAnn();
+
+  // Pipe to TTS (non-blocking — never delays the race)
+  if (ttsReady()) {
+    speak(text);
+  }
 }
 
 function showNextAnn() {

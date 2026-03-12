@@ -9,6 +9,7 @@ import { announce, checkAnnouncements, addLog, addFeed, updStandings, updPerf, u
 import { initAuth, signInWithGoogle, signInWithEmail, registerWithEmail, signOut, onAuthStateChanged, getCurrentUser, getUserBalance, isFirebaseReady } from './auth.js';
 import { createEvent, placeBet, lockBets, resolveEvent, subscribeToPool } from './betting.js';
 import { drawQRCode } from './qr.js';
+import * as TTS from './tts-service.js';
 
 // State
 let horses = initHorses();
@@ -379,6 +380,7 @@ window.resetRace = function() {
   elapsed = 0;
   SPEED = 1;
   currentEventId = null;
+  TTS.stop(); // Stop any ongoing TTS
   if (poolUnsub) { poolUnsub(); poolUnsub = null; }
   livePools = {};
 
@@ -409,6 +411,81 @@ window.setSpd = function(s, btn) {
   SPEED = s;
   document.querySelectorAll('.spdb').forEach(b => b.classList.remove('ac'));
   btn.classList.add('ac');
+};
+
+// ---- TTS CONTROLS ----
+
+window.warmupTTS = async function () {
+  // AudioContext must be created on user gesture
+  TTS.ensureAudioContext();
+
+  const warmBtn = document.getElementById('ttsWarmup');
+  const loading = document.getElementById('ttsLoading');
+  const readyCtrls = document.getElementById('ttsReadyCtrls');
+
+  warmBtn.style.display = 'none';
+  loading.style.display = 'flex';
+
+  let lastPct = 0;
+  const success = await TTS.init((p) => {
+    if (p.progress !== undefined) {
+      const pct = Math.round(p.progress);
+      if (pct > lastPct) lastPct = pct;
+      document.getElementById('ttsLoadFill').style.width = lastPct + '%';
+      if (p.file) {
+        const fname = p.file.split('/').pop();
+        document.getElementById('ttsLoadText').textContent =
+          `Downloading ${fname}... ${lastPct}%`;
+      }
+    }
+  });
+
+  loading.style.display = 'none';
+
+  if (success) {
+    readyCtrls.style.display = 'flex';
+    // Populate voice dropdown
+    const voices = TTS.listVoices();
+    if (voices.length > 0) {
+      const sel = document.getElementById('ttsVoice');
+      sel.innerHTML = '';
+      voices.forEach((v) => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        // Make friendly name: am_michael → Michael
+        opt.textContent = v.split('_').slice(1).join(' ')
+          .replace(/\b\w/g, c => c.toUpperCase()) || v;
+        sel.appendChild(opt);
+      });
+      sel.value = TTS.getVoice();
+    }
+    // Test speak
+    TTS.speak('Announcer is ready! Let the races begin!');
+  } else {
+    warmBtn.style.display = 'inline-flex';
+    warmBtn.textContent = '⚠️ Load Failed — Retry';
+  }
+};
+
+window.toggleMute = function () {
+  const btn = document.getElementById('ttsMuteBtn');
+  if (TTS.isMuted()) {
+    TTS.setMuted(false);
+    TTS.ensureAudioContext();
+    btn.textContent = '🔊';
+  } else {
+    TTS.setMuted(true);
+    btn.textContent = '🔇';
+  }
+};
+
+window.changeTTSVoice = function (v) {
+  TTS.setVoice(v);
+};
+
+window.changeTTSSpeed = function (v) {
+  TTS.setSpeed(parseFloat(v));
+  document.getElementById('ttsSpeedVal').textContent = parseFloat(v).toFixed(1) + '×';
 };
 
 // ---- INIT ----

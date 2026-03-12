@@ -63,6 +63,23 @@ body::before {
 .spdb { font-family:'JetBrains Mono',monospace; font-size:11px; padding:4px 10px; background:rgba(255,255,255,0.04); border:1px solid var(--border); color:var(--dim); border-radius:6px; cursor:pointer; transition:all 0.15s; }
 .spdb.ac { background:var(--gold-dim); border-color:rgba(232,184,48,0.3); color:var(--gold); }
 
+/* TTS CONTROLS */
+.tts-ctrls { display:flex; align-items:center; gap:8px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border); }
+.btn-tts-warmup { font-family:'Manrope',sans-serif; font-weight:600; font-size:12px; padding:6px 14px; background:rgba(109,140,255,0.12); border:1px solid rgba(109,140,255,0.25); color:var(--h1); border-radius:8px; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+.btn-tts-warmup:hover { background:rgba(109,140,255,0.2); border-color:rgba(109,140,255,0.4); }
+.tts-ready-ctrls { display:flex; align-items:center; gap:6px; }
+.btn-tts-mute { font-size:16px; padding:4px 8px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px; cursor:pointer; transition:all 0.15s; line-height:1; }
+.btn-tts-mute:hover { background:rgba(255,255,255,0.1); }
+.tts-voice-select { font-family:'JetBrains Mono',monospace; font-size:11px; padding:4px 8px; background:rgba(255,255,255,0.04); border:1px solid var(--border); color:var(--text); border-radius:6px; cursor:pointer; max-width:120px; }
+.tts-speed-ctrl { display:flex; align-items:center; gap:4px; }
+.tts-speed-ctrl label { font-size:14px; line-height:1; }
+.tts-speed-ctrl input[type="range"] { width:60px; height:4px; accent-color:var(--gold); cursor:pointer; }
+#ttsSpeedVal { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); min-width:28px; }
+.tts-loading { display:flex; align-items:center; gap:8px; }
+.tts-loading-bar { width:100px; height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden; }
+.tts-loading-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--h1),var(--gold)); border-radius:3px; transition:width 0.3s; }
+.tts-loading-text { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); white-space:nowrap; }
+
 /* LAYOUT */
 .layout { display:grid; grid-template-columns:1fr 300px; gap:16px; max-width:1400px; margin:0 auto; padding:0 16px; }
 @media(max-width:1000px) { .layout { grid-template-columns:1fr; } }
