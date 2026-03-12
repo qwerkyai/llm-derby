@@ -148,6 +148,7 @@ window.hideInfoModal = function() {
 document.addEventListener('click', (e) => {
   if (e.target.id === 'infoModal') window.hideInfoModal();
   if (e.target.id === 'authModal') window.hideAuthModal();
+  if (e.target.id === 'ttsInfoPopup') window.toggleTTSInfo();
 });
 
 // Close modals on Escape key
@@ -476,22 +477,6 @@ window.warmupTTS = async function () {
 
   if (success) {
     readyCtrls.style.display = 'flex';
-    // Populate voice dropdown
-    const voices = TTS.listVoices();
-    if (voices.length > 0) {
-      const sel = document.getElementById('ttsVoice');
-      sel.innerHTML = '';
-      voices.forEach((v) => {
-        const opt = document.createElement('option');
-        opt.value = v;
-        // Make friendly name: am_michael → Michael
-        opt.textContent = v.split('_').slice(1).join(' ')
-          .replace(/\b\w/g, c => c.toUpperCase()) || v;
-        sel.appendChild(opt);
-      });
-      sel.value = TTS.getVoice();
-    }
-    // Test speak
     TTS.speak('Announcer is ready! Let the races begin!');
   } else {
     warmBtn.style.display = 'inline-flex';
@@ -511,13 +496,13 @@ window.toggleMute = function () {
   }
 };
 
-window.changeTTSVoice = function (v) {
-  TTS.setVoice(v);
+window.changeTTSVol = function (v) {
+  TTS.setVolume(parseFloat(v));
 };
 
-window.changeTTSSpeed = function (v) {
-  TTS.setSpeed(parseFloat(v));
-  document.getElementById('ttsSpeedVal').textContent = parseFloat(v).toFixed(1) + '×';
+window.toggleTTSInfo = function () {
+  const popup = document.getElementById('ttsInfoPopup');
+  popup.style.display = popup.style.display === 'none' ? 'flex' : 'none';
 };
 
 // ---- INIT ----

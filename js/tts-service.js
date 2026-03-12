@@ -12,6 +12,8 @@ let isSpeaking = false;
 let muted = false;
 let voice = 'am_adam';
 let speed = 1.4; // Fast like a real horse race announcer (~250 WPM effective)
+let volume = 0.8;
+let gainNode = null;
 let modelLoading = false;
 let modelReady = false;
 let onLoadProgress = null;
@@ -79,6 +81,9 @@ export async function init(progressCallback) {
 export function ensureAudioContext() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = volume;
+    gainNode.connect(audioCtx.destination);
   }
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
@@ -98,7 +103,7 @@ function playAudio(audioData) {
     buffer.getChannelData(0).set(audioData);
     const source = audioCtx.createBufferSource();
     source.buffer = buffer;
-    source.connect(audioCtx.destination);
+    source.connect(gainNode || audioCtx.destination);
     currentSource = source;
     source.onended = () => {
       currentSource = null;
@@ -363,6 +368,11 @@ export function setVoice(v) {
 
 export function getVoice() {
   return voice;
+}
+
+export function setVolume(v) {
+  volume = Math.max(0, Math.min(1, v));
+  if (gainNode) gainNode.gain.value = volume;
 }
 
 export function setSpeed(s) {

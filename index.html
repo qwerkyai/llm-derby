@@ -150,24 +150,34 @@
   </div>
   <div class="tts-ctrls" id="ttsCtrls">
     <button class="btn btn-tts-warmup" id="ttsWarmup" onclick="warmupTTS()">
-      🎙️ Warm Up Announcer
+      🎙️ Enable Announcer
     </button>
     <div class="tts-ready-ctrls" id="ttsReadyCtrls" style="display:none">
       <button class="btn btn-tts-mute" id="ttsMuteBtn" onclick="toggleMute()">🔊</button>
-      <select class="tts-voice-select" id="ttsVoice" onchange="changeTTSVoice(this.value)">
-        <option value="am_adam">Adam</option>
-      </select>
-      <div class="tts-speed-ctrl">
-        <label>🗣️</label>
-        <input type="range" id="ttsSpeed" min="0.8" max="2.0" step="0.1" value="1.4" oninput="changeTTSSpeed(this.value)">
-        <span id="ttsSpeedVal">1.4×</span>
-      </div>
+      <input type="range" class="tts-vol" id="ttsVol" min="0" max="1" step="0.05" value="0.8" oninput="changeTTSVol(this.value)" title="Volume">
+      <button class="btn btn-tts-info" id="ttsInfoBtn" onclick="toggleTTSInfo()">ℹ️</button>
     </div>
     <div class="tts-loading" id="ttsLoading" style="display:none">
       <div class="tts-loading-bar"><div class="tts-loading-fill" id="ttsLoadFill"></div></div>
       <span class="tts-loading-text" id="ttsLoadText">Downloading model...</span>
     </div>
   </div>
+
+<!-- TTS Info Popup -->
+<div class="tts-info-popup" id="ttsInfoPopup" style="display:none">
+  <div class="tts-info-content">
+    <button class="tts-info-close" onclick="toggleTTSInfo()">&times;</button>
+    <div class="tts-info-title">🧠 Local AI Announcer</div>
+    <p>The race announcer is powered by <strong>Kokoro-82M</strong>, an 82-million parameter text-to-speech model running <em>entirely in your browser</em>.</p>
+    <p>No audio is sent to any server — all speech synthesis happens locally using WebGPU or WebAssembly on your device.</p>
+    <div class="tts-info-specs">
+      <span>Model: Kokoro-82M ONNX</span>
+      <span>Size: ~160MB (cached after first load)</span>
+      <span>Backend: WebGPU / WASM</span>
+      <span>Inference: 100% client-side</span>
+    </div>
+  </div>
+</div>
 </div>
 
 <div class="layout">
