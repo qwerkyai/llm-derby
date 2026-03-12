@@ -1,0 +1,20 @@
+{
+  "name": "llm-derby",
+  "version": "2.0.0",
+  "description": "LLM Derby — MMLU-Pro Hard benchmark race visualization with parimutuel betting",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 3000",
+    "test": "npx vitest run",
+    "test:watch": "npx vitest",
+    "lint": "npx eslint src/ tests/",
+    "format": "npx prettier --write src/ public/ tests/",
+    "format:check": "npx prettier --check src/ public/ tests/"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "prettier": "^3.2.0",
+    "vitest": "^3.0.0"
+  }
+}

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Derby — MMLU-Pro Hard Benchmark Race</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Bodoni:wght@700&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Auth pill (top right) -->
+<div class="auth-bar" id="auth-bar">
+  <button class="btn btn-sign-in" id="sign-in-btn">Sign In to Bet</button>
+  <div class="user-pill" id="user-pill" style="display:none">
+    <div class="user-avatar" id="user-avatar"></div>
+    <span class="user-name" id="user-name"></span>
+    <span class="user-balance-badge" id="user-balance">100</span>
+    <button class="btn-logout" id="logout-btn">Logout</button>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-pre">Championship Series</div>
+  <h1>LLM Derby</h1>
+  <div class="header-sub">MMLU-Pro Hard · Benchmark Race</div>
+  <div class="badges">
+    <span class="badge badge-metric">📊 MMLU-Pro Hard · 300 Qs · 10-Way MCQ</span>
+    <span class="badge badge-live" id="live-badge"><span class="live-dot"></span>LIVE</span>
+  </div>
+</div>
+
+<!-- Auth Modal -->
+<div class="modal-overlay" id="auth-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+    <h2 class="modal-title" id="modal-title">Sign In</h2>
+    <p class="modal-sub">Join the race and place your bets!</p>
+    <button class="btn-google" id="google-signin-btn">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9.003 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z"/><path fill="#FBBC05" d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.428 0 9.002 0 5.48 0 2.438 2.017.957 4.958l3.007 2.332c.708-2.127 2.692-3.71 5.036-3.71z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="modal-divider"><span>or</span></div>
+    <form id="auth-form">
+      <div class="form-row" id="name-row" style="display:none">
+        <label for="auth-name" class="sr-only">Display Name</label>
+        <input type="text" id="auth-name" placeholder="Display Name" class="form-input">
+      </div>
+      <div class="form-row">
+        <label for="auth-email" class="sr-only">Email</label>
+        <input type="email" id="auth-email" placeholder="Email" class="form-input" required>
+      </div>
+      <div class="form-row">
+        <label for="auth-pass" class="sr-only">Password</label>
+        <input type="password" id="auth-pass" placeholder="Password" class="form-input" required>
+      </div>
+      <div class="auth-error" id="auth-error" style="display:none"></div>
+      <button type="submit" class="btn btn-go" style="width:100%" id="auth-submit-btn">Sign In</button>
+    </form>
+    <p class="modal-toggle">
+      <span id="toggle-text">Don't have an account?</span>
+      <a href="#" id="toggle-link">Register</a>
+    </p>
+  </div>
+</div>
+
+<div class="announcer" id="announcer"><div class="announcer-inner"><span id="announcer-icon">🎙️</span> <span class="announcer-text" id="announcer-text"></span></div></div>
+<div class="status-badge" id="status-badge">AWAITING START</div>
+
+<div class="controls">
+  <button class="btn btn-go" id="start-btn">🏁 Start Race</button>
+  <button class="btn btn-reset" id="reset-btn">Reset</button>
+  <div class="speed-group">
+    <label>SPD</label>
+    <button class="speed-btn active" data-speed="1">1×</button>
+    <button class="speed-btn" data-speed="2">2×</button>
+    <button class="speed-btn" data-speed="4">4×</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="track-container">
+    <canvas id="track-canvas" width="1060" height="580">LLM Derby race visualization — three AI models racing on an oval track</canvas>
+  </div>
+  <div class="sidebar">
+    <div class="panel">
+      <div class="panel-header">Live Standings</div>
+      <div id="standings"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">Betting</div>
+      <div id="betting-area">
+        <div class="betting-cards" id="betting-cards"></div>
+        <div id="bet-controls" style="display:none">
+          <div class="bet-input-row" id="bet-input-row"></div>
+          <div class="bet-status" id="bet-status"></div>
+        </div>
+        <div id="setup-bet-area" style="text-align:center;margin-top:8px">
+          <button class="btn btn-go btn-sm" id="setup-bet-btn" style="display:none">Setup Betting</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">Performance</div>
+      <div class="perf-grid">
+        <div><div class="perf-label">ACC</div><div class="perf-value" id="perf-acc-0" style="color:var(--h1)">—</div><div class="perf-value" id="perf-acc-1" style="color:var(--h2)">—</div><div class="perf-value" id="perf-acc-2" style="color:var(--h3)">—</div></div>
+        <div><div class="perf-label">TOK/S</div><div class="perf-value" id="perf-tps-0" style="color:var(--h1)">—</div><div class="perf-value" id="perf-tps-1" style="color:var(--h2)">—</div><div class="perf-value" id="perf-tps-2" style="color:var(--h3)">—</div></div>
+        <div><div class="perf-label">PEN</div><div class="perf-value" id="perf-pen-0" style="color:var(--h1)">—</div><div class="perf-value" id="perf-pen-1" style="color:var(--h2)">—</div><div class="perf-value" id="perf-pen-2" style="color:var(--h3)">—</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">Commentary</div>
+      <div class="commentary-feed" id="commentary-feed"></div>
+    </div>
+  </div>
+</div>
+
+<div class="terminals">
+  <div class="terminal">
+    <div class="terminal-bar"><div class="terminal-dot" style="background:var(--h1)"></div><div class="terminal-title" style="color:var(--h1)">Llama 3.1 3B</div></div>
+    <div class="terminal-output" id="log0"></div>
+  </div>
+  <div class="terminal">
+    <div class="terminal-bar"><div class="terminal-dot" style="background:var(--h2)"></div><div class="terminal-title" style="color:var(--h2)">Qre Llama 3B</div></div>
+    <div class="terminal-output" id="log1"></div>
+  </div>
+  <div class="terminal">
+    <div class="terminal-bar"><div class="terminal-dot" style="background:var(--h3)"></div><div class="terminal-title" style="color:var(--h3)">Qre Llama 8B</div></div>
+    <div class="terminal-output" id="log2"></div>
+  </div>
+</div>
+
+<!-- Leaderboard -->
+<div class="leaderboard-section" id="leaderboard-section" style="display:none">
+  <div class="panel" style="max-width:600px;margin:0 auto 24px">
+    <div class="panel-header">Leaderboard — Top Bettors</div>
+    <div id="leaderboard"></div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-logo">Powered by <span class="qdistill-badge">QDistill</span></div>
+      <div class="footer-link"><a href="https://qwerky.ai" target="_blank" rel="noopener">qwerky.ai</a></div>
+    </div>
+    <div class="footer-qr" id="footer-qr">
+      <div class="qr-label">Scan to join</div>
+      <canvas id="qr-canvas" width="100" height="100"></canvas>
+    </div>
+    <div class="footer-info">
+      <div class="footer-text">NVIDIA GTC 2026</div>
+      <div class="footer-text dimmer">Running on DGX Spark</div>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="../src/app.js"></script>
+</body>
+</html>
