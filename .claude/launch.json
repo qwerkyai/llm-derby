@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "llm-derby",
-      "runtimeExecutable": "/usr/bin/python3",
-      "runtimeArgs": ["-c", "import os;os.chdir('/tmp/llm-derby');import http.server as h,socketserver as s;d=type('H',(h.SimpleHTTPRequestHandler,),{'extensions_map':{'.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.png':'image/png','':'application/octet-stream'}});t=s.TCPServer(('',3000),d);print('Serving on 3000',flush=True);t.serve_forever()"],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-l", "3000", "--no-clipboard"],
       "port": 3000
     }
   ]

@@ -10,7 +10,7 @@ export function drawHorses(ctx, horses, running) {
 
   drawOrder.forEach(h => {
     const idx = h.id;
-    const laneOff = 2 + idx * 14;
+    const laneOff = 2 + idx * 10;
     const pt = trackPt(h.displayProg, laneOff);
 
     // Glowing trail

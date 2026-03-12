@@ -20,6 +20,14 @@ export function announce(icon, text, dur) {
   annQueue.push({ icon, text, dur: dur || 4000 });
   if (!annTimer) showNextAnn();
 
+  // Show subtitle
+  const subEl = document.getElementById('subtitle');
+  if (subEl) {
+    subEl.textContent = text.replace(/<[^>]+>/g, '');
+    subEl.classList.add('active');
+    setTimeout(() => subEl.classList.remove('active'), (dur || 4000) + 1000);
+  }
+
   // Pipe to TTS (non-blocking — never delays the race)
   if (ttsReady()) {
     speak(text);

@@ -6,7 +6,7 @@
 <title>LLM Derby — MMLU-Pro Hard Benchmark Race</title>
 
 <!-- SEO -->
-<meta name="description" content="Watch AI models race head-to-head on MMLU-Pro Hard benchmarks. Bet with virtual tokens on Llama 3.1 3B, Qre Llama 3B, and Qre Llama 8B in real-time. Built by Qwerky AI for NVIDIA GTC 2026.">
+<meta name="description" content="Watch AI models race head-to-head on MMLU-Pro Hard benchmarks. Bet with virtual tokens on Llama 3.2 3B, Qre Llama 3B, Qre Llama 8B, and Llama 3.1 8B in real-time. Accuracy calibrated to real MMLU-Pro benchmarks. Built by Qwerky AI for NVIDIA GTC 2026.">
 <meta name="keywords" content="LLM, AI, benchmark, MMLU-Pro, Llama, Qwerky AI, horse racing, machine learning, inference optimization">
 <meta name="author" content="Qwerky AI">
 <meta name="robots" content="index, follow">
@@ -32,7 +32,7 @@
 <meta name="twitter:image" content="https://llm-derby.web.app/og-image.png">
 
 <!-- Slack / Discord unfurl -->
-<meta property="og:image:alt" content="Three AI models racing on a horse track — LLM Derby benchmark visualization">
+<meta property="og:image:alt" content="Four AI models racing on a horse track — LLM Derby benchmark visualization">
 
 <!-- LinkedIn -->
 <meta property="article:author" content="Qwerky AI">
@@ -78,14 +78,15 @@
     <div class="info-body">
       <div class="info-section">
         <h3>The Race</h3>
-        <p>Three AI models compete head-to-head answering 300 MMLU-Pro Hard questions — one of the toughest academic benchmarks in AI. Each question is 10-way multiple choice requiring multi-step reasoning across subjects like math, physics, law, and more.</p>
+        <p>Four AI models compete head-to-head answering 300 MMLU-Pro Hard questions — one of the toughest academic benchmarks in AI. Each question is 10-way multiple choice requiring multi-step reasoning across subjects like math, physics, law, and more.</p>
       </div>
       <div class="info-section">
         <h3>The Horses</h3>
         <div class="info-horses">
-          <div class="info-horse"><span class="info-dot" style="background:var(--h1)"></span> <strong>Llama 3.1 3B</strong> — Meta's base model (3B parameters)</div>
-          <div class="info-horse"><span class="info-dot" style="background:var(--h2)"></span> <strong>Qre Llama 3B</strong> — Qwerky AI's optimized 3B model</div>
-          <div class="info-horse"><span class="info-dot" style="background:var(--h3)"></span> <strong>Qre Llama 8B</strong> — Qwerky AI's optimized 8B model</div>
+          <div class="info-horse"><span class="info-dot" style="background:var(--h1)"></span> <strong>Llama 3.2 3B</strong> — Meta's base model (3B params, 36.5% MMLU-Pro)</div>
+          <div class="info-horse"><span class="info-dot" style="background:var(--h2)"></span> <strong>Qre Llama 3B</strong> — Qwerky's optimized 3B (~2x faster, same accuracy)</div>
+          <div class="info-horse"><span class="info-dot" style="background:var(--h3)"></span> <strong>Qre Llama 8B</strong> — Qwerky's optimized 8B (~2x faster, same accuracy)</div>
+          <div class="info-horse"><span class="info-dot" style="background:var(--h4)"></span> <strong>Llama 3.1 8B</strong> — Meta's base model (8B params, 44.3% MMLU-Pro)</div>
         </div>
       </div>
       <div class="info-section">
@@ -137,6 +138,7 @@
 </div>
 
 <div class="ann" id="ann"><div class="ann-in"><span id="aI">🎙️</span> <span class="ann-tx" id="aT"></span></div></div>
+<div class="subtitle" id="subtitle"></div>
 <div class="sts" id="stb">AWAITING START</div>
 
 <div class="ctrls">
@@ -167,14 +169,23 @@
 <div class="tts-info-popup" id="ttsInfoPopup" style="display:none">
   <div class="tts-info-content">
     <button class="tts-info-close" onclick="toggleTTSInfo()">&times;</button>
-    <div class="tts-info-title">🧠 Local AI Announcer</div>
-    <p>The race announcer is powered by <strong>Kokoro-82M</strong>, an 82-million parameter text-to-speech model running <em>entirely in your browser</em>.</p>
-    <p>No audio is sent to any server — all speech synthesis happens locally using WebGPU or WebAssembly on your device.</p>
+    <div class="tts-info-title">🧠 Dual AI Announcer</div>
+    <p>Two AI models work together <em>entirely in your browser</em> — no servers, no API calls.</p>
+    <div class="tts-info-duo">
+      <div class="tts-info-model">
+        <div class="tts-info-model-name">🗣️ Voice — Kokoro-82M</div>
+        <p>82M parameter text-to-speech model converts commentary into natural speech using WebGPU.</p>
+      </div>
+      <div class="tts-info-model">
+        <div class="tts-info-model-name">💡 Brain — SmolLM2-360M</div>
+        <p>360M parameter language model generates unique, dynamic race commentary in real-time.</p>
+      </div>
+    </div>
     <div class="tts-info-specs">
-      <span>Model: Kokoro-82M ONNX</span>
-      <span>Size: ~160MB (cached after first load)</span>
-      <span>Backend: WebGPU / WASM</span>
-      <span>Inference: 100% client-side</span>
+      <span>Voice: ~160MB</span>
+      <span>Brain: ~250MB</span>
+      <span>Backend: WebGPU</span>
+      <span>100% client-side</span>
     </div>
   </div>
 </div>
@@ -203,9 +214,9 @@
     <div class="pnl">
       <div class="pnl-h">Performance</div>
       <div class="sg">
-        <div><div class="sg-l">ACC</div><div class="sg-v" id="sa0" style="color:var(--h1)">—</div><div class="sg-v" id="sa1" style="color:var(--h2)">—</div><div class="sg-v" id="sa2" style="color:var(--h3)">—</div></div>
-        <div><div class="sg-l">TOK/S</div><div class="sg-v" id="st0" style="color:var(--h1)">—</div><div class="sg-v" id="st1" style="color:var(--h2)">—</div><div class="sg-v" id="st2" style="color:var(--h3)">—</div></div>
-        <div><div class="sg-l">PEN</div><div class="sg-v" id="sp0" style="color:var(--h1)">—</div><div class="sg-v" id="sp1" style="color:var(--h2)">—</div><div class="sg-v" id="sp2" style="color:var(--h3)">—</div></div>
+        <div><div class="sg-l">ACC</div><div class="sg-v" id="sa0" style="color:var(--h1)">—</div><div class="sg-v" id="sa1" style="color:var(--h2)">—</div><div class="sg-v" id="sa2" style="color:var(--h3)">—</div><div class="sg-v" id="sa3" style="color:var(--h4)">—</div></div>
+        <div><div class="sg-l">TOK/S</div><div class="sg-v" id="st0" style="color:var(--h1)">—</div><div class="sg-v" id="st1" style="color:var(--h2)">—</div><div class="sg-v" id="st2" style="color:var(--h3)">—</div><div class="sg-v" id="st3" style="color:var(--h4)">—</div></div>
+        <div><div class="sg-l">PEN</div><div class="sg-v" id="sp0" style="color:var(--h1)">—</div><div class="sg-v" id="sp1" style="color:var(--h2)">—</div><div class="sg-v" id="sp2" style="color:var(--h3)">—</div><div class="sg-v" id="sp3" style="color:var(--h4)">—</div></div>
       </div>
     </div>
     <div class="pnl">
@@ -217,7 +228,7 @@
 
 <div class="terms">
   <div class="term">
-    <div class="terbar"><div class="terdot" style="background:var(--h1)"></div><div class="terttl" style="color:var(--h1)">Llama 3.1 3B</div></div>
+    <div class="terbar"><div class="terdot" style="background:var(--h1)"></div><div class="terttl" style="color:var(--h1)">Llama 3.2 3B</div></div>
     <div class="terout" id="log0"></div>
   </div>
   <div class="term">
@@ -227,6 +238,10 @@
   <div class="term">
     <div class="terbar"><div class="terdot" style="background:var(--h3)"></div><div class="terttl" style="color:var(--h3)">Qre Llama 8B</div></div>
     <div class="terout" id="log2"></div>
+  </div>
+  <div class="term">
+    <div class="terbar"><div class="terdot" style="background:var(--h4)"></div><div class="terttl" style="color:var(--h4)">Llama 3.1 8B</div></div>
+    <div class="terout" id="log3"></div>
   </div>
 </div>
 

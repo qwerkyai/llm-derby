@@ -23,6 +23,14 @@ let recentMissTemplates = [];
 let recentCorrectTemplates = [];
 const RECENT_MEMORY = 8; // Remember last N templates to avoid repeats
 
+// Color nicknames for each horse (by color hex)
+const COLOR_NAMES = {
+  '#6d8cff': 'Blue',
+  '#ff5e8a': 'Pink',
+  '#00d4a0': 'Green',
+  '#f0a030': 'Orange',
+};
+
 // ---- INIT & MODEL LOADING ----
 
 async function detectDevice() {
@@ -175,52 +183,52 @@ const SUBJECT_FLAVOR = {
   'Political Science': ['political theory', 'governance', 'political science'],
 };
 
-// Template pools — {name} = horse name, {subject} = subject area,
+// Template pools — {color} = horse color name, {subject} = subject area,
 // {flavor} = subject flavor text, {penalty} = penalty seconds, {qNum} = question number
 const MISS_TEMPLATES = [
   // Short punchy reactions
-  "OH! {name} gets it WRONG! That {flavor} question was a TOUGH one!",
-  "OUCH! {name} stumbles on {subject}! That's a {penalty} second penalty!",
-  "NO! {name} misses on {subject}! That'll cost them!",
-  "{name} gets BURNED by {flavor}! {penalty} seconds added!",
-  "WRONG ANSWER from {name}! {subject} strikes again!",
-  "OH NO! {name} whiffs on question {qNum}! A {penalty} second setback!",
-  "That {subject} question TRIPS UP {name}! Penalty time!",
-  "MISS! {name} can't crack that {flavor} problem!",
-  "{name} drops the ball on {subject}! {penalty} seconds, ouch!",
-  "UH OH! {name} gets caught by a {subject} curveball!",
+  "OH! {color} gets it WRONG! That {flavor} question was a TOUGH one!",
+  "OUCH! {color} stumbles on {subject}! That's a {penalty} second penalty!",
+  "NO! {color} misses on {subject}! That'll cost them!",
+  "{color} gets BURNED by {flavor}! {penalty} seconds added!",
+  "WRONG ANSWER from {color}! {subject} strikes again!",
+  "OH NO! {color} whiffs on question {qNum}! A {penalty} second setback!",
+  "That {subject} question TRIPS UP {color}! Penalty time!",
+  "MISS! {color} can't crack that {flavor} problem!",
+  "{color} drops the ball on {subject}! {penalty} seconds, ouch!",
+  "UH OH! {color} gets caught by a {subject} curveball!",
 
   // Dramatic / excited
-  "AND {name} gets it WRONG, folks! {flavor} proves TOO MUCH! {penalty} second penalty!",
-  "HEARTBREAK for {name}! That {subject} question was a KILLER!",
-  "The wheels come off for {name} on {subject}! {penalty} seconds in the box!",
-  "{name} takes a HIT! {flavor} claims another VICTIM!",
-  "DOWN GOES {name} on question {qNum}! {subject} is UNFORGIVING today!",
+  "AND {color} gets it WRONG, folks! {flavor} proves TOO MUCH! {penalty} second penalty!",
+  "HEARTBREAK for {color}! That {subject} question was a KILLER!",
+  "The wheels come off for {color} on {subject}! {penalty} seconds in the box!",
+  "{color} takes a HIT! {flavor} claims another VICTIM!",
+  "DOWN GOES {color} on question {qNum}! {subject} is UNFORGIVING today!",
 
   // Commentary style
-  "That {subject} question was NO JOKE and {name} just found out! {penalty} second penalty!",
-  "{name} was SO CLOSE but {flavor} had other plans!",
-  "You HATE to see it! {name} misses on {subject}!",
-  "COSTLY mistake from {name}! {penalty} seconds they can NOT afford!",
-  "The pressure is ON and {name} cracks on {subject}!",
-  "{name} bites the dust on {flavor}! That's gonna hurt!",
-  "NOT the answer {name} needed! {subject} adds {penalty} seconds to the clock!",
+  "That {subject} question was NO JOKE and {color} just found out! {penalty} second penalty!",
+  "{color} was SO CLOSE but {flavor} had other plans!",
+  "You HATE to see it! {color} misses on {subject}!",
+  "COSTLY mistake from {color}! {penalty} seconds they can NOT afford!",
+  "The pressure is ON and {color} cracks on {subject}!",
+  "{color} bites the dust on {flavor}! That's gonna hurt!",
+  "NOT the answer {color} needed! {subject} adds {penalty} seconds to the clock!",
 
   // Penalty focused
-  "PENALTY! {name} gets {penalty} seconds for that {subject} miss!",
-  "{penalty} seconds on the clock for {name}! {flavor} is BRUTAL today!",
-  "And that MISS from {name} means {penalty} more seconds of penalty time!",
+  "PENALTY! {color} gets {penalty} seconds for that {subject} miss!",
+  "{penalty} seconds on the clock for {color}! {flavor} is BRUTAL today!",
+  "And that MISS from {color} means {penalty} more seconds of penalty time!",
 ];
 
 // Correct answer templates (used less frequently, for streaks and milestones)
 const CORRECT_STREAK_TEMPLATES = [
-  "{name} is ON FIRE! {streak} in a row!",
-  "ANOTHER correct answer from {name}! They are ROLLING!",
-  "{name} NAILS that {subject} question! What a STREAK!",
-  "UNSTOPPABLE! {name} keeps crushing it with {streak} straight!",
-  "{name} makes {subject} look EASY! {streak} correct and counting!",
-  "The HOT HAND continues for {name}! {streak} in a row, folks!",
-  "CAN'T STOP {name}! That's {streak} straight correct answers!",
+  "{color} is ON FIRE! {streak} in a row!",
+  "ANOTHER correct answer from {color}! They are ROLLING!",
+  "{color} NAILS that {subject} question! What a STREAK!",
+  "UNSTOPPABLE! {color} keeps crushing it with {streak} straight!",
+  "{color} makes {subject} look EASY! {streak} correct and counting!",
+  "The HOT HAND continues for {color}! {streak} in a row, folks!",
+  "CAN'T STOP {color}! That's {streak} straight correct answers!",
 ];
 
 function pickTemplate(templates, recentList) {
@@ -242,25 +250,27 @@ function getSubjectFlavor(subject) {
   return flavors[Math.floor(Math.random() * flavors.length)];
 }
 
-// Generate commentary for a missed question
-export function generateMissCommentary(horseName, subject, penaltySec, qNum) {
+// Generate commentary for a missed question (fallback templates)
+export function generateMissCommentary(horseName, subject, penaltySec, qNum, colorHex) {
   const template = pickTemplate(MISS_TEMPLATES, recentMissTemplates);
   const flavor = getSubjectFlavor(subject);
+  const color = COLOR_NAMES[colorHex] || horseName;
 
   return template
-    .replace(/\{name\}/g, horseName)
+    .replace(/\{color\}/g, color)
     .replace(/\{subject\}/g, subject)
     .replace(/\{flavor\}/g, flavor)
     .replace(/\{penalty\}/g, penaltySec.toFixed(1))
     .replace(/\{qNum\}/g, qNum);
 }
 
-// Generate commentary for a hot streak
-export function generateStreakCommentary(horseName, subject, streak) {
+// Generate commentary for a hot streak (fallback templates)
+export function generateStreakCommentary(horseName, subject, streak, colorHex) {
   const template = pickTemplate(CORRECT_STREAK_TEMPLATES, recentCorrectTemplates);
+  const color = COLOR_NAMES[colorHex] || horseName;
 
   return template
-    .replace(/\{name\}/g, horseName)
+    .replace(/\{color\}/g, color)
     .replace(/\{subject\}/g, subject)
     .replace(/\{streak\}/g, streak);
 }

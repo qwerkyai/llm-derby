@@ -4,13 +4,13 @@
 
 import { W, H, drawTrack } from './track.js';
 import { drawHorses } from './horses.js';
-import { initHorses, raceTick, lerpHorses, resetHorseState, TQ } from './race-engine.js';
+import { initHorses, raceTick, lerpHorses, resetHorseState, TQ, calcPenalty } from './race-engine.js';
 import { announce, checkAnnouncements, addLog, addFeed, updStandings, updPerf, updBetting, spawnConfetti, resetUI } from './ui.js';
 import { initAuth, signInWithGoogle, signInWithEmail, registerWithEmail, signOut, onAuthStateChanged, getCurrentUser, getUserBalance, isFirebaseReady } from './auth.js';
 import { createEvent, placeBet, lockBets, resolveEvent, subscribeToPool } from './betting.js';
 import { drawQRCode } from './qr.js';
 import * as TTS from './tts-service.js';
-import { calcPenalty } from './race-engine.js';
+import * as LLM from './llm-service.js';
 
 // State
 let horses = initHorses();
@@ -250,9 +250,160 @@ function drawScene() {
 // Throttle miss commentary so we don't overwhelm the TTS queue
 let lastMissCommentTime = 0;
 let lastStreakCommentTime = 0;
+let lastTriviaTime = 0;
 const MISS_COMMENT_COOLDOWN = 4; // seconds between miss comments
 const STREAK_COMMENT_COOLDOWN = 8; // seconds between streak comments
 const STREAK_THRESHOLD = 8; // only comment on streaks >= this
+const TRIVIA_COOLDOWN = 25; // seconds between trivia questions
+const TRIVIA_START_DELAY = 15; // wait this long before first trivia
+
+// Fun trivia questions tied to MMLU-Pro subjects
+const TRIVIA_QUESTIONS = [
+  // Biology
+  "Hey folks, does anyone here know which is the ONLY North American marsupial? That's right, the opossum!",
+  "Here's one for you — what animal can survive being frozen SOLID and thaw back to life? The wood frog, ladies and gentlemen!",
+  "Fun fact while we wait — an octopus has THREE hearts! No wonder they're so emotional!",
+  // Physics
+  "Quick trivia — what is the ONLY planet that spins clockwise? Venus! She's always been a little different!",
+  "Did you know, light takes over EIGHT minutes to travel from the sun to Earth? These models are a BIT faster than that!",
+  "Here's a brain buster — what temperature is the SAME in Fahrenheit and Celsius? Minus forty! Wild!",
+  // History
+  "History buffs, which war lasted only THIRTY EIGHT minutes? The Anglo-Zanzibar war of 1896! Shorter than this race!",
+  "Pop quiz — who was the shortest-serving US president? William Henry Harrison, just 31 days! At least our models last longer!",
+  // Math / CS
+  "Fun one for the nerds — what is the ONLY even prime number? Two! The loneliest prime!",
+  "Did you know the word ALGORITHM comes from a 9th century Persian mathematician? Al-Khwarizmi! Give it up for the OG!",
+  // Chemistry
+  "Quick one — what is the most ABUNDANT element in the universe? Hydrogen! Simple but mighty!",
+  "Here's a fun fact — gold is so malleable you can make a thread TEN MILES long from a single ounce!",
+  // Law / Economics
+  "Trivia time — which country has the world's OLDEST constitution still in use? The United States, signed 1787!",
+  "Did you know honey NEVER spoils? Archaeologists found 3000-year-old honey in Egyptian tombs and it was still good!",
+  // Psychology / Philosophy
+  "Here's a wild one — the human brain uses about TWENTY percent of the body's total energy! These AI models wish they were that efficient!",
+  "Fun fact — the word ROBOT comes from Czech, meaning forced labor! Karel Čapek coined it in 1920!",
+  // Medicine
+  "Quick trivia — your body has about SIXTY THOUSAND miles of blood vessels! That's enough to wrap around Earth TWICE!",
+  "Did you know humans share about SIXTY percent of their DNA with BANANAS? We're all a little fruity!",
+];
+let triviaIndex = 0;
+
+// Race flavor commentary — position-based, randomized
+// Each key is a progress threshold (0-1). Once the leader passes it, one comment fires.
+const RACE_FLAVOR = {
+  0.05: [
+    "And they're OFF! The pack bursts out of the gate!",
+    "HERE WE GO! All four horses charging out of the starting line!",
+    "The gates are open and they're FLYING off the start!",
+    "And AWAY they go! What a start to this race!",
+  ],
+  0.12: [
+    "The pack is coming up on the first turn, jockeying for position!",
+    "Heading into turn one, the horses are finding their lanes!",
+    "First turn approaching and the field is starting to spread out!",
+    "They're rounding the first bend, what a beautiful sight!",
+  ],
+  0.25: [
+    "Quarter of the way through and the pack is HEATING UP!",
+    "We're through the first quarter! The models are finding their rhythm!",
+    "Twenty five percent done, and we're starting to see who's got the stamina!",
+    "A quarter of the race is in the books, and what a race it's been so far!",
+  ],
+  0.35: [
+    "The backstretch now, and the field is starting to separate!",
+    "Down the back straight, you can feel the TENSION building!",
+    "We're on the backstretch, the crowd is getting restless!",
+    "Through the far side of the track, these models are working HARD!",
+  ],
+  0.50: [
+    "HALFWAY there! This is where the race REALLY begins!",
+    "We've hit the halfway point and things are getting INTERESTING!",
+    "The halfway mark, and the cream is starting to rise to the top!",
+    "Fifty percent done! Who's got what it takes to close this out?",
+  ],
+  0.62: [
+    "Into the far turn, and you can see the horses digging DEEP!",
+    "Rounding the far turn, the pressure is ON!",
+    "The far turn, and every question counts now!",
+    "Coming through the final curve, this is championship territory!",
+  ],
+  0.75: [
+    "Three quarters done! The HOME STRETCH is calling!",
+    "Seventy five percent complete, and the finish line is in SIGHT!",
+    "The final quarter! This is where legends are MADE!",
+    "We're in the closing stretch now, it's a SPRINT to the finish!",
+  ],
+  0.88: [
+    "Down the final straight! The crowd is on their FEET!",
+    "The home stretch! Can you feel the ENERGY in here?",
+    "Final furlongs! Everything they've got, RIGHT NOW!",
+    "They can SEE the finish line! Give it EVERYTHING!",
+  ],
+};
+let flavorFired = {};
+let lastFlavorTime = 0;
+const FLAVOR_COOLDOWN = 8; // min seconds between flavor comments
+
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Subtitle display
+let subtitleTimer = null;
+
+function showSubtitle(text) {
+  const el = document.getElementById('subtitle');
+  if (!el) return;
+  // Strip HTML for subtitle display
+  const clean = text.replace(/<[^>]+>/g, '');
+  el.textContent = clean;
+  el.classList.add('active');
+  if (subtitleTimer) clearTimeout(subtitleTimer);
+  subtitleTimer = setTimeout(() => {
+    el.classList.remove('active');
+  }, 6000);
+}
+
+// Speak and show subtitle
+function speakAndShow(text, feedIcon, feedElapsed) {
+  TTS.speak(text);
+  showSubtitle(text);
+  if (feedIcon && feedElapsed !== undefined) {
+    addFeed(`${feedIcon} ${text}`, feedElapsed);
+  }
+}
+
+async function handleMissCommentary(h, ev) {
+  const penaltySec = calcPenalty(h.cumulativeWrongs);
+
+  // Try LLM first, fall back to templates
+  if (LLM.isReady()) {
+    const llmText = await LLM.generateMiss(h.color, ev.subject, penaltySec, ev.qNum);
+    if (llmText) {
+      speakAndShow(llmText, '❌', elapsed);
+      return;
+    }
+  }
+
+  // Fallback: template commentary
+  const commentary = TTS.generateMissCommentary(h.name, ev.subject, penaltySec, ev.qNum, h.color);
+  speakAndShow(commentary, '❌', elapsed);
+}
+
+async function handleStreakCommentary(h, ev) {
+  // Try LLM first, fall back to templates
+  if (LLM.isReady()) {
+    const llmText = await LLM.generateStreak(h.color, ev.subject, h.streak);
+    if (llmText) {
+      speakAndShow(llmText, '🔥', elapsed);
+      return;
+    }
+  }
+
+  // Fallback: template commentary
+  const commentary = TTS.generateStreakCommentary(h.name, ev.subject, h.streak, h.color);
+  speakAndShow(commentary, '🔥', elapsed);
+}
 
 function handleRaceEvents(events) {
   events.forEach(ev => {
@@ -263,20 +414,15 @@ function handleRaceEvents(events) {
 
       // Miss commentary — nearly constant but throttled
       if (!ev.correct && TTS.isReady() && elapsed - lastMissCommentTime > MISS_COMMENT_COOLDOWN) {
-        const penaltySec = calcPenalty(h.cumulativeWrongs);
-        const commentary = TTS.generateMissCommentary(h.name, ev.subject, penaltySec, ev.qNum);
-        TTS.speak(commentary);
-        addFeed(`❌ ${commentary}`, elapsed);
         lastMissCommentTime = elapsed;
+        handleMissCommentary(h, ev);
       }
 
       // Streak commentary — celebrate hot streaks
       if (ev.correct && h.streak >= STREAK_THRESHOLD && h.streak % 4 === 0
           && elapsed - lastStreakCommentTime > STREAK_COMMENT_COOLDOWN) {
-        const commentary = TTS.generateStreakCommentary(h.name, ev.subject, h.streak);
-        TTS.speak(commentary);
-        addFeed(`🔥 ${commentary}`, elapsed);
         lastStreakCommentTime = elapsed;
+        handleStreakCommentary(h, ev);
       }
 
     } else if (ev.type === 'finish') {
@@ -290,9 +436,9 @@ let winnerId = null;
 function onFinish(h) {
   finishOrder++;
   const place = finishOrder;
-  const suffix = place === 1 ? 'st' : place === 2 ? 'nd' : 'rd';
+  const suffix = place === 1 ? 'st' : place === 2 ? 'nd' : place === 3 ? 'rd' : 'th';
   const acc = Math.round((h.correct / h.currentQ) * 100);
-  const icon = place === 1 ? '🏆' : place === 2 ? '🥈' : '🥉';
+  const icon = place === 1 ? '🏆' : place === 2 ? '🥈' : place === 3 ? '🥉' : '4️⃣';
 
   h.finishTime = Date.now();
   h.finishElapsed = elapsed;
@@ -351,12 +497,40 @@ function frame(ts) {
     if (running) checkAnnouncements(horses, elapsed);
   }
 
+  // Race flavor commentary — fires once per progress threshold
+  if (running && elapsed - lastFlavorTime > FLAVOR_COOLDOWN) {
+    const leaderProg = Math.max(...horses.map(hh => hh.progress));
+    for (const [threshold, lines] of Object.entries(RACE_FLAVOR)) {
+      const t = parseFloat(threshold);
+      if (leaderProg >= t && !flavorFired[threshold]) {
+        flavorFired[threshold] = true;
+        lastFlavorTime = elapsed;
+        const line = pickRandom(lines);
+        speakAndShow(line, '🐎', elapsed);
+        break; // only one per frame
+      }
+    }
+  }
+
   // Periodic commentary
   if (running && Math.random() < 0.003 * SPEED) {
     const rh = horses[Math.floor(Math.random() * horses.length)];
     if (rh.currentQ > 0 && !rh.finishTime) {
       const acc = Math.round((rh.correct / rh.currentQ) * 100);
       addFeed(`${rh.emoji} <b>${rh.name}</b> at Q${rh.currentQ} — ${acc}% accuracy`, elapsed);
+    }
+  }
+
+  // Trivia questions — fun color commentary during the race
+  if (running && TTS.isReady() && elapsed > TRIVIA_START_DELAY
+      && elapsed - lastTriviaTime > TRIVIA_COOLDOWN) {
+    // Check that no horse has finished yet (trivia is mid-race filler)
+    const anyFinished = horses.some(hh => hh.finishTime > 0);
+    if (!anyFinished) {
+      lastTriviaTime = elapsed;
+      const trivia = TRIVIA_QUESTIONS[triviaIndex % TRIVIA_QUESTIONS.length];
+      triviaIndex++;
+      speakAndShow(trivia, '🧠', elapsed);
     }
   }
 
@@ -410,10 +584,16 @@ window.resetRace = function() {
   elapsed = 0;
   SPEED = 1;
   currentEventId = null;
-  TTS.stop(); // Stop any ongoing TTS
-  TTS.resetCommentary(); // Reset template tracking
+  TTS.stop();
+  TTS.resetCommentary();
   lastMissCommentTime = 0;
   lastStreakCommentTime = 0;
+  lastTriviaTime = 0;
+  lastFlavorTime = 0;
+  flavorFired = {};
+  // Clear subtitle
+  const subEl = document.getElementById('subtitle');
+  if (subEl) subEl.classList.remove('active');
   if (poolUnsub) { poolUnsub(); poolUnsub = null; }
   livePools = {};
 
@@ -459,8 +639,10 @@ window.warmupTTS = async function () {
   warmBtn.style.display = 'none';
   loading.style.display = 'flex';
 
+  // Phase 1: Load TTS model (Kokoro-82M)
   let lastPct = 0;
-  const success = await TTS.init((p) => {
+  document.getElementById('ttsLoadText').textContent = 'Loading voice model...';
+  const ttsSuccess = await TTS.init((p) => {
     if (p.progress !== undefined) {
       const pct = Math.round(p.progress);
       if (pct > lastPct) lastPct = pct;
@@ -468,19 +650,42 @@ window.warmupTTS = async function () {
       if (p.file) {
         const fname = p.file.split('/').pop();
         document.getElementById('ttsLoadText').textContent =
-          `Downloading ${fname}... ${lastPct}%`;
+          `Voice: ${fname}... ${lastPct}%`;
       }
+    }
+  });
+
+  if (!ttsSuccess) {
+    loading.style.display = 'none';
+    warmBtn.style.display = 'inline-flex';
+    warmBtn.textContent = '⚠️ Load Failed — Retry';
+    return;
+  }
+
+  // Phase 2: Load LLM model (SmolLM2-360M) — non-blocking
+  // Show controls immediately so TTS is usable while LLM loads
+  readyCtrls.style.display = 'flex';
+  TTS.speak('Voice is ready! Loading the brain now!');
+
+  document.getElementById('ttsLoadFill').style.width = '0%';
+  document.getElementById('ttsLoadText').textContent = 'Loading AI commentary...';
+
+  const llmSuccess = await LLM.init((p) => {
+    if (p.progress !== undefined) {
+      const pct = Math.round(p.progress);
+      document.getElementById('ttsLoadFill').style.width = pct + '%';
+      document.getElementById('ttsLoadText').textContent =
+        `AI Brain: ${p.text || ''} ${pct}%`;
     }
   });
 
   loading.style.display = 'none';
 
-  if (success) {
-    readyCtrls.style.display = 'flex';
-    TTS.speak('Announcer is ready! Let the races begin!');
+  if (llmSuccess) {
+    TTS.speak('AI commentary loaded! We are READY TO RACE!');
   } else {
-    warmBtn.style.display = 'inline-flex';
-    warmBtn.textContent = '⚠️ Load Failed — Retry';
+    console.warn('[LLM] AI commentary failed to load — using template fallback');
+    // TTS still works, just no dynamic LLM commentary
   }
 };
 

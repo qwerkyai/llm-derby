@@ -143,8 +143,8 @@ export function drawTrack(ctx, elapsed, running) {
   ctx.stroke();
 
   // Lane lines
-  for (let lane = 0; lane < 3; lane++) {
-    const loff = 2 + lane * 14;
+  for (let lane = 0; lane < 4; lane++) {
+    const loff = 2 + lane * 10;
     ctx.strokeStyle = 'rgba(255,255,255,0.03)';
     ctx.lineWidth = 0.5;
     ctx.setLineDash([8, 16]);

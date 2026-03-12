@@ -7,6 +7,7 @@
   --h1: #6d8cff;
   --h2: #ff5e8a;
   --h3: #00d4a0;
+  --h4: #f0a030;
   --panel: rgba(10,14,26,0.94);
   --border: rgba(255,255,255,0.055);
   --text: #cdc5b8;
@@ -41,11 +42,21 @@ body::before {
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
 /* ANNOUNCER */
-.ann { position:relative; z-index:2; max-width:900px; margin:8px auto; min-height:0; overflow:hidden; transition:all 0.4s; }
-.ann.active { min-height:36px; }
+.ann { position:relative; z-index:2; max-width:900px; margin:8px auto; min-height:36px; overflow:hidden; }
 .ann-in { background:rgba(232,184,48,0.08); border:1px solid rgba(232,184,48,0.15); border-radius:8px; padding:6px 16px; display:flex; align-items:center; gap:8px; opacity:0; transform:translateY(-10px); transition:all 0.3s; }
 .ann.active .ann-in { opacity:1; transform:translateY(0); }
 .ann-tx { font-size:13px; color:var(--gold); flex:1; }
+
+/* SUBTITLE BAR */
+.subtitle {
+  position:relative; z-index:2; max-width:900px; margin:0 auto;
+  text-align:center; font-family:'JetBrains Mono',monospace; font-size:12px;
+  color:var(--gold); padding:4px 16px; min-height:20px; overflow:hidden;
+  opacity:0; transition:opacity 0.4s;
+  text-shadow:0 1px 6px rgba(0,0,0,0.6);
+  pointer-events:none;
+}
+.subtitle.active { opacity:1; }
 
 /* STATUS & CONTROLS */
 .sts { text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:3px; padding:6px; color:var(--dim); }
@@ -85,6 +96,10 @@ body::before {
 .tts-info-content p { font-size:13px; line-height:1.55; color:var(--text); margin-bottom:8px; }
 .tts-info-content p strong { color:#fff; }
 .tts-info-content p em { color:var(--h1); font-style:normal; }
+.tts-info-duo { display:flex; flex-direction:column; gap:10px; margin:12px 0; }
+.tts-info-model { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+.tts-info-model-name { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--gold); margin-bottom:4px; letter-spacing:0.5px; }
+.tts-info-model p { font-size:12px; line-height:1.5; color:var(--text); margin:0; }
 .tts-info-specs { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
 .tts-info-specs span { font-family:'JetBrains Mono',monospace; font-size:10px; padding:3px 8px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:4px; color:var(--dim); }
 

@@ -6,10 +6,14 @@ import { BENCHMARK_DATA } from './data.js';
 
 const TQ = 300;
 
-// Penalty config
-const PENALTY_BASE = 2;       // seconds
-const PENALTY_INCREMENT = 0.5; // per cumulative wrong answer
-const PENALTY_CAP = 8;        // max penalty seconds
+// Time compression — speeds up the race so QRE 8B finishes in ~4 min
+// Answer times are divided by this factor; penalties are set independently
+const TIME_SCALE = 4.5;
+
+// Penalty config — grows with CONSECUTIVE wrongs only, resets on correct
+const PENALTY_BASE = 0.7;       // seconds base penalty for first miss
+const PENALTY_INCREMENT = 0.15; // per consecutive wrong answer
+const PENALTY_CAP = 2.5;        // max penalty seconds
 
 function calcPenalty(cumulativeWrongs) {
   return Math.min(PENALTY_BASE + cumulativeWrongs * PENALTY_INCREMENT, PENALTY_CAP);
@@ -17,13 +21,15 @@ function calcPenalty(cumulativeWrongs) {
 
 export function createHorseState(modelData) {
   // Pre-compute estimated total time for progress calculation
-  const totalAnswerTime = modelData.questions.reduce((sum, q) => sum + q.time_ms, 0);
+  const totalAnswerTime = modelData.questions.reduce((sum, q) => sum + q.time_ms / TIME_SCALE, 0);
   let projectedPenalty = 0;
-  let wrongCount = 0;
+  let consecutiveWrongs = 0;
   modelData.questions.forEach(q => {
-    if (!q.correct) {
-      wrongCount++;
-      projectedPenalty += calcPenalty(wrongCount) * 1000;
+    if (q.correct) {
+      consecutiveWrongs = 0;
+    } else {
+      consecutiveWrongs++;
+      projectedPenalty += calcPenalty(consecutiveWrongs) * 1000;
     }
   });
 
@@ -107,6 +113,7 @@ export function raceTick(horses, dtMs) {
           h.correct++;
           h.streak++;
           if (h.streak > h.bestStreak) h.bestStreak = h.streak;
+          h.cumulativeWrongs = 0; // Reset consecutive wrong streak
         } else {
           h.streak = 0;
           h.cumulativeWrongs++;
@@ -143,10 +150,11 @@ export function raceTick(horses, dtMs) {
 }
 
 // Compute cumulative time needed up to and including question index qIdx
+// Times are compressed by TIME_SCALE for faster races
 function cumulatedTimeNeeded(horse, qIdx) {
   let total = 0;
   for (let i = 0; i <= qIdx; i++) {
-    total += horse.questions[i].time_ms;
+    total += horse.questions[i].time_ms / TIME_SCALE;
   }
   return total;
 }
