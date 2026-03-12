@@ -144,31 +144,40 @@ body::before {
 .bet-bal { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gold); letter-spacing:0; text-transform:none; }
 .bet-signin { text-align:center; padding:12px 0; }
 .bet-signin-msg { font-size:12px; color:var(--dim); margin-bottom:8px; }
-.bet-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
-.bet-card { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:8px 6px; text-align:center; transition:all 0.3s; position:relative; }
+.bet-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+@media(max-width:900px) { .bet-grid { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:480px) { .bet-grid { grid-template-columns:1fr; } }
+.bet-card { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center; transition:all 0.3s; position:relative; display:flex; flex-direction:column; gap:4px; }
 .bet-card.fav { border-color:rgba(34,197,94,0.3); background:rgba(34,197,94,0.04); }
 .bet-card.locked { opacity:0.6; pointer-events:none; }
-.bet-name { font-size:11px; font-weight:600; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.bet-odds { font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:700; line-height:1.2; }
-.bet-pool { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--dim); margin:2px 0 4px; }
-.bet-label { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--dim); letter-spacing:1px; margin-bottom:4px; }
-.bet-input { display:flex; gap:3px; align-items:center; }
-.bet-input input { flex:1; min-width:0; padding:4px 6px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:11px; text-align:center; outline:none; }
-.bet-input input:focus { border-color:rgba(232,184,48,0.4); }
-.bet-input .bet-place-btn { font-family:'JetBrains Mono',monospace; font-size:9px; padding:4px 8px; background:var(--gold-dim); border:1px solid rgba(232,184,48,0.2); color:var(--gold); border-radius:5px; cursor:pointer; white-space:nowrap; }
-.bet-input .bet-place-btn:hover { background:rgba(232,184,48,0.2); }
-.bet-input .bet-place-btn:disabled { opacity:0.3; cursor:default; }
-.bet-my { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); padding:6px 0 2px; border-top:1px solid var(--border); margin-top:6px; }
-.bet-my-item { display:flex; justify-content:space-between; padding:2px 0; }
-.bet-my-horse { font-weight:600; }
-.bet-my-amt { color:var(--gold); }
+.bet-card.placed { border-color:rgba(232,184,48,0.3); background:rgba(232,184,48,0.04); }
+.bet-card-top { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.bet-name { font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bet-odds { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; line-height:1; flex-shrink:0; }
+.bet-card-meta { display:flex; align-items:center; justify-content:space-between; }
+.bet-pool { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--dim); }
+.bet-label { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--dim); letter-spacing:1px; }
+.bet-stepper { display:flex; align-items:center; gap:4px; margin-top:4px; }
+.bet-step-btn { width:28px; height:28px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text); font-size:16px; font-weight:700; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; justify-content:center; line-height:1; }
+.bet-step-btn:hover { background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.15); }
+.bet-step-btn:active { transform:scale(0.95); }
+.bet-step-val { flex:1; text-align:center; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:var(--gold); }
+.bet-place-btn { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; padding:6px 12px; background:linear-gradient(135deg,#e8b830,#c49518); border:none; color:#000; border-radius:6px; cursor:pointer; transition:all 0.15s; letter-spacing:1px; }
+.bet-place-btn:hover { filter:brightness(1.15); transform:translateY(-1px); }
+.bet-place-btn:active { transform:scale(0.97); }
+.bet-placed-row { display:flex; align-items:center; justify-content:space-between; margin-top:4px; padding:4px 8px; background:rgba(232,184,48,0.08); border-radius:6px; }
+.bet-placed-amt { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--gold); }
+.bet-reset-btn { width:22px; height:22px; border-radius:50%; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.25); color:var(--red); font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+.bet-reset-btn:hover { background:rgba(239,68,68,0.25); }
+.bet-my { display:none; }
 .bet-result { text-align:center; padding:8px; margin-top:6px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; }
 .bet-result.win { background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.3); color:var(--green); }
 .bet-result.lose { background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); color:var(--red); }
 
 /* TERMINAL LOGS */
-.terms { max-width:1400px; margin:16px auto; padding:0 16px 24px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-@media(max-width:900px) { .terms { grid-template-columns:1fr; } }
+.terms { max-width:1400px; margin:16px auto; padding:0 16px 24px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+@media(max-width:1200px) { .terms { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:600px) { .terms { grid-template-columns:1fr; } }
 .term { background:rgba(8,10,18,0.95); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
 .terbar { display:flex; align-items:center; gap:6px; padding:8px 12px; border-bottom:1px solid var(--border); }
 .terdot { width:8px; height:8px; border-radius:50%; }

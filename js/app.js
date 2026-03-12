@@ -5,7 +5,7 @@
 import { W, H, drawTrack } from './track.js';
 import { drawHorses } from './horses.js';
 import { initHorses, raceTick, lerpHorses, resetHorseState, TQ, calcPenalty } from './race-engine.js';
-import { announce, checkAnnouncements, addLog, addFeed, updStandings, updPerf, updBetting, spawnConfetti, resetUI } from './ui.js';
+import { announce, checkAnnouncements, addLog, addFeed, updStandings, updPerf, updBetting, spawnConfetti, resetUI, getBetAmount, resetBetAmounts } from './ui.js';
 import { initAuth, signInWithGoogle, signInWithEmail, registerWithEmail, signOut, onAuthStateChanged, getCurrentUser, getUserBalance, isFirebaseReady } from './auth.js';
 import { createEvent, placeBet, lockBets, resolveEvent, subscribeToPool } from './betting.js';
 import { drawQRCode } from './qr.js';
@@ -206,27 +206,33 @@ async function initBettingEvent() {
 
 window.doBet = async function(horseId) {
   if (!currentEventId || !authUser || betsLocked) return;
-  const input = document.getElementById('betAmt' + horseId);
-  if (!input) return;
-  const amount = parseInt(input.value);
-  if (!amount || amount < 1) return;
+  const amount = getBetAmount(horseId);
+  if (!amount || amount < 5) return;
 
   try {
     const success = await placeBet(currentEventId, horseId, amount);
     if (success) {
-      input.value = '';
       userBets.push({ horse: horseId, amount });
       const balance = await getUserBalance(authUser.uid);
       document.getElementById('userBal').textContent = balance;
       document.getElementById('betBal').textContent = '$' + balance;
       document.getElementById('betStatus').textContent = `Bet $${amount} on ${horses[horseId].name}!`;
-      // Re-render with updated bets
       updBetting(horses, livePools, { locked: false, userBets, showInputs: true });
     } else {
       document.getElementById('betStatus').textContent = 'Bet failed — check balance';
     }
   } catch (err) {
     document.getElementById('betStatus').textContent = 'Error: ' + err.message;
+  }
+};
+
+// Reset bet handler — removes a placed bet from local state
+window._resetBetHandler = function(horseId) {
+  const idx = userBets.findIndex(b => b.horse === horseId);
+  if (idx !== -1) {
+    userBets.splice(idx, 1);
+    document.getElementById('betStatus').textContent = 'Bet removed';
+    updBetting(horses, livePools, { locked: false, userBets, showInputs: true });
   }
 };
 
@@ -413,11 +419,14 @@ async function handleStreakCommentary(h, ev) {
 }
 
 function handleRaceEvents(events) {
-  events.forEach(ev => {
+  for (const ev of events) {
     if (ev.type === 'answer') {
       addLog(ev.horseId, ev.qNum, ev.subject, ev.correct);
 
       const h = horses[ev.horseId];
+
+      // Skip commentary for finished horses
+      if (h.finishTime) continue;
 
       // Miss commentary — nearly constant but throttled
       if (!ev.correct && TTS.isReady() && elapsed - lastMissCommentTime > MISS_COMMENT_COOLDOWN) {
@@ -435,7 +444,7 @@ function handleRaceEvents(events) {
     } else if (ev.type === 'finish') {
       onFinish(horses[ev.horseId]);
     }
-  });
+  }
 }
 
 let winnerId = null;
@@ -449,6 +458,7 @@ function onFinish(h) {
 
   h.finishTime = Date.now();
   h.finishElapsed = elapsed;
+  h.finishPlace = place;
   h.progress = 1;
 
   if (place === 1) {
@@ -462,6 +472,7 @@ function onFinish(h) {
   const allDone = horses.every(hh => hh.finishTime > 0);
   if (allDone) {
     running = false;
+    finished = true;
     document.getElementById('stb').textContent = '● RACE COMPLETE';
     document.getElementById('stb').className = 'sts g';
     document.getElementById('liveBdg').style.display = 'none';
@@ -524,11 +535,11 @@ function frame(ts) {
     updStandings(horses);
     updPerf(horses);
     updBetting(horses, livePools, { locked: betsLocked, userBets, showInputs: !!authUser && !betsLocked });
-    if (running) checkAnnouncements(horses, elapsed);
+    if (running && !finished) checkAnnouncements(horses, elapsed);
   }
 
-  // Race flavor commentary — fires once per progress threshold
-  if (running && elapsed - lastFlavorTime > FLAVOR_COOLDOWN) {
+  // Race flavor commentary — fires once per progress threshold (stop after race ends)
+  if (running && !finished && elapsed - lastFlavorTime > FLAVOR_COOLDOWN) {
     const leaderProg = Math.max(...horses.map(hh => hh.progress));
     for (const [threshold, lines] of Object.entries(RACE_FLAVOR)) {
       const t = parseFloat(threshold);
@@ -542,8 +553,8 @@ function frame(ts) {
     }
   }
 
-  // Periodic commentary
-  if (running && Math.random() < 0.003 * SPEED) {
+  // Periodic commentary (stop after race ends)
+  if (running && !finished && Math.random() < 0.003 * SPEED) {
     const rh = horses[Math.floor(Math.random() * horses.length)];
     if (rh.currentQ > 0 && !rh.finishTime) {
       const acc = Math.round((rh.correct / rh.currentQ) * 100);
@@ -551,8 +562,8 @@ function frame(ts) {
     }
   }
 
-  // Trivia questions — fun color commentary during the race
-  if (running && TTS.isReady() && elapsed > TRIVIA_START_DELAY
+  // Trivia questions — fun color commentary during the race (stop after race ends)
+  if (running && !finished && TTS.isReady() && elapsed > TRIVIA_START_DELAY
       && elapsed - lastTriviaTime > TRIVIA_COOLDOWN) {
     // Check that no horse has finished yet (trivia is mid-race filler)
     const anyFinished = horses.some(hh => hh.finishTime > 0);
@@ -639,6 +650,7 @@ window.resetRace = function() {
   // Reset betting UI and create new event
   userBets = [];
   betsLocked = false;
+  resetBetAmounts();
   document.getElementById('betResult').style.display = 'none';
   document.getElementById('betStatus').textContent = '';
   document.getElementById('betStatus').className = 'bet-status';

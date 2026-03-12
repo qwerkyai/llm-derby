@@ -57,6 +57,7 @@ export function createHorseState(modelData) {
     displayProg: 0,
     finishTime: 0,        // wall-clock ms when finished (0 = not done)
     finishElapsed: 0,     // elapsed seconds when finished
+    finishPlace: 0,       // 1st, 2nd, 3rd, 4th (0 = not finished)
 
     // Visual state
     particles: [],
@@ -191,6 +192,7 @@ export function resetHorseState(h) {
   h.displayProg = 0;
   h.finishTime = 0;
   h.finishElapsed = 0;
+  h.finishPlace = 0;
   h.streak = 0;
   h.bestStreak = 0;
   h.particles = [];

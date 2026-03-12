@@ -51,14 +51,18 @@ function showNextAnn() {
 }
 
 export function checkAnnouncements(horses, elapsed) {
-  const sorted = horses.slice().sort((a, b) => b.progress - a.progress);
+  // Only consider horses still racing for lead/tied announcements
+  const racing = horses.filter(h => !h.finishTime);
+  if (racing.length === 0) return;
+
+  const sorted = racing.slice().sort((a, b) => b.progress - a.progress);
   const leader = sorted[0].id;
   if (leader !== lastLead && lastLead !== -1 && elapsed > 3) {
     announce('🔄', `<b>${sorted[0].name}</b> takes the lead!`);
   }
   lastLead = leader;
 
-  sorted.forEach(h => {
+  racing.forEach(h => {
     const pct = Math.floor((h.currentQ / TQ) * 100);
     [25, 50, 75].forEach(m => {
       const key = h.id + '-' + m;
@@ -70,8 +74,8 @@ export function checkAnnouncements(horses, elapsed) {
     });
   });
 
-  // "Virtually tied" — max once per 30 seconds
-  if (elapsed > 10 && Math.random() < 0.002 && elapsed - lastTiedCall > 30) {
+  // "Virtually tied" — max once per 30 seconds (only for racing horses)
+  if (sorted.length >= 2 && elapsed > 10 && Math.random() < 0.002 && elapsed - lastTiedCall > 30) {
     const gap = Math.abs(sorted[0].progress - sorted[1].progress);
     if (gap < 0.02) {
       lastTiedCall = elapsed;
@@ -150,7 +154,10 @@ export function updPerf(horses) {
 
 // ---- BETTING ----
 
-// Renders betting cards with pool odds and bet inputs
+// Betting amount state — tracks staged amounts per horse before placing
+const betAmounts = {};
+
+// Renders betting cards with pool odds, stepper controls, and placed bets
 // pools: { horseId: totalAmount } from Firestore subscription
 // opts: { locked, userBets: [{horse, amount}], showInputs }
 export function updBetting(horses, pools = {}, opts = {}) {
@@ -168,7 +175,6 @@ export function updBetting(horses, pools = {}, opts = {}) {
       odds[h.id] = pool > 0 ? totalPool / pool : 0;
     });
   } else {
-    // Simulated odds when no bets placed
     const scores = horses.map(h => {
       const accScore = h.currentQ > 0 ? (h.correct / h.currentQ) : 0.25;
       return h.progress * 0.5 + accScore * 0.5 + 0.01;
@@ -181,6 +187,14 @@ export function updBetting(horses, pools = {}, opts = {}) {
 
   const minOdds = Math.min(...Object.values(odds).filter(o => o > 0));
 
+  // Tally placed bets per horse
+  const placedByHorse = {};
+  if (opts.userBets) {
+    opts.userBets.forEach(b => {
+      placedByHorse[b.horse] = (placedByHorse[b.horse] || 0) + b.amount;
+    });
+  }
+
   let html = '';
   horses.forEach(h => {
     const pool = pools[h.id] || 0;
@@ -188,35 +202,66 @@ export function updBetting(horses, pools = {}, opts = {}) {
     const isFav = odd > 0 && odd === minOdds;
     const oddsStr = odd > 0 ? odd.toFixed(1) + 'x' : '—';
     const poolStr = totalPool > 0 ? '$' + pool : '';
+    const placed = placedByHorse[h.id] || 0;
+    const amt = betAmounts[h.id] || 5;
 
-    html += `<div class="bet-card${isFav ? ' fav' : ''}${locked ? ' locked' : ''}">` +
-      `<div class="bet-name" style="color:${h.color}">${h.emoji} ${h.name}</div>` +
-      `<div class="bet-odds" style="color:${isFav ? 'var(--green)' : 'var(--text)'}">${oddsStr}</div>` +
-      `<div class="bet-pool">${poolStr}</div>` +
-      `<div class="bet-label">${isFav ? '★ FAV' : 'WIN'}</div>`;
+    html += `<div class="bet-card${isFav ? ' fav' : ''}${locked ? ' locked' : ''}${placed > 0 ? ' placed' : ''}">` +
+      `<div class="bet-card-top">` +
+        `<div class="bet-name" style="color:${h.color}">${h.emoji} ${h.name}</div>` +
+        `<div class="bet-odds" style="color:${isFav ? 'var(--green)' : 'var(--text)'}">${oddsStr}</div>` +
+      `</div>` +
+      `<div class="bet-card-meta">` +
+        `<span class="bet-label">${isFav ? '★ FAV' : 'WIN'}</span>` +
+        (poolStr ? `<span class="bet-pool">${poolStr} pool</span>` : '') +
+      `</div>`;
 
-    if (opts.showInputs && !locked) {
-      html += `<div class="bet-input">` +
-        `<input type="number" id="betAmt${h.id}" min="1" placeholder="$">` +
+    if (placed > 0) {
+      html += `<div class="bet-placed-row">` +
+        `<span class="bet-placed-amt">$${placed} bet</span>` +
+        (!locked ? `<button class="bet-reset-btn" onclick="resetBet(${h.id})">✕</button>` : '') +
+      `</div>`;
+    }
+
+    if (opts.showInputs && !locked && placed === 0) {
+      html += `<div class="bet-stepper">` +
+        `<button class="bet-step-btn" onclick="stepBet(${h.id},-5)">−</button>` +
+        `<span class="bet-step-val" id="betVal${h.id}">$${amt}</span>` +
+        `<button class="bet-step-btn" onclick="stepBet(${h.id},+5)">+</button>` +
         `<button class="bet-place-btn" onclick="doBet(${h.id})">BET</button>` +
-        `</div>`;
+      `</div>`;
     }
     html += `</div>`;
   });
   grid.innerHTML = html;
 
-  // Update user's bets display
+  // Hide the separate "Your bets" section — bets are now shown inline on each card
   const myEl = document.getElementById('betMy');
-  if (opts.userBets && opts.userBets.length > 0) {
-    myEl.style.display = 'block';
-    myEl.innerHTML = '<div style="margin-bottom:2px;color:var(--text);font-weight:600">Your bets:</div>' +
-      opts.userBets.map(b => {
-        const horse = horses.find(h => h.id === b.horse);
-        return `<div class="bet-my-item"><span class="bet-my-horse" style="color:${horse ? horse.color : 'var(--text)'}">${horse ? horse.emoji + ' ' + horse.name : 'Horse ' + b.horse}</span><span class="bet-my-amt">$${b.amount}</span></div>`;
-      }).join('');
-  } else {
-    myEl.style.display = 'none';
-  }
+  if (myEl) myEl.style.display = 'none';
+}
+
+// Stepper: adjust bet amount for a horse
+window.stepBet = function(horseId, delta) {
+  const current = betAmounts[horseId] || 5;
+  const next = Math.max(5, current + delta);
+  betAmounts[horseId] = next;
+  const el = document.getElementById('betVal' + horseId);
+  if (el) el.textContent = '$' + next;
+};
+
+// Reset: clear a placed bet (remove from userBets, refund handled by caller)
+window.resetBet = function(horseId) {
+  // Delegate to app.js
+  if (window._resetBetHandler) window._resetBetHandler(horseId);
+};
+
+// Get the current staged bet amount for a horse
+export function getBetAmount(horseId) {
+  return betAmounts[horseId] || 5;
+}
+
+// Reset all staged amounts
+export function resetBetAmounts() {
+  Object.keys(betAmounts).forEach(k => delete betAmounts[k]);
 }
 
 // ---- CONFETTI ----

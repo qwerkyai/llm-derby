@@ -2,16 +2,47 @@
 // HORSE RENDERING — trails, particles, glow, labels
 // ============================================================
 
-import { trackPt, getTrackTime } from './track.js';
+import { trackPt, getTrackTime, TX, TY, TW, TH, SR, SL } from './track.js';
+
+// Podium positions in the infield (centered)
+const PODIUM_POSITIONS = [
+  { x: TX + SR + SL / 2, y: TY + SR - 60, label: '1st' },   // 1st — top center
+  { x: TX + SR + SL / 2 - 70, y: TY + SR - 20, label: '2nd' }, // 2nd — left
+  { x: TX + SR + SL / 2 + 70, y: TY + SR - 20, label: '3rd' }, // 3rd — right
+  { x: TX + SR + SL / 2, y: TY + SR + 20, label: '4th' },    // 4th — bottom center
+];
 
 export function drawHorses(ctx, horses, running) {
   const trackTime = getTrackTime();
+
+  // Draw podium platforms for finished horses
+  const finishedCount = horses.filter(h => h.finishTime > 0).length;
+  if (finishedCount > 0) {
+    drawPodium(ctx, horses, trackTime);
+  }
+
   const drawOrder = horses.slice().sort((a, b) => a.displayProg - b.displayProg);
 
   drawOrder.forEach(h => {
     const idx = h.id;
     const laneOff = 2 + idx * 10;
-    const pt = trackPt(h.displayProg, laneOff);
+
+    // If horse has finished, animate toward podium position
+    let pt;
+    if (h.finishTime > 0 && h.finishPlace > 0) {
+      const podiumPos = PODIUM_POSITIONS[h.finishPlace - 1];
+      const trackPos = trackPt(1.0, laneOff);
+      // Animate from track to podium over ~2 seconds
+      const t = Math.min(1, (Date.now() - h.finishTime) / 2000);
+      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOutQuad
+      pt = {
+        x: trackPos.x + (podiumPos.x - trackPos.x) * ease,
+        y: trackPos.y + (podiumPos.y - trackPos.y) * ease,
+        angle: 0,
+      };
+    } else {
+      pt = trackPt(h.displayProg, laneOff);
+    }
 
     // Glowing trail
     const trailLen = 0.05;
@@ -117,5 +148,48 @@ export function drawHorses(ctx, horses, running) {
     ctx.fillRect(pt.x - nameW / 2 - 4, pt.y - 30, nameW + 8, 14);
     ctx.fillStyle = h.color;
     ctx.fillText(h.name, pt.x, pt.y - 22);
+
+    // Place badge for finished horses on podium
+    if (h.finishTime > 0 && h.finishPlace > 0) {
+      const t = Math.min(1, (Date.now() - h.finishTime) / 2000);
+      if (t > 0.5) {
+        const icon = h.finishPlace === 1 ? '🏆' : h.finishPlace === 2 ? '🥈' : h.finishPlace === 3 ? '🥉' : '4️⃣';
+        ctx.font = '14px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(icon, pt.x, pt.y + 22);
+      }
+    }
+  });
+}
+
+function drawPodium(ctx, horses, trackTime) {
+  const finishedHorses = horses.filter(h => h.finishTime > 0 && h.finishPlace > 0)
+    .sort((a, b) => a.finishPlace - b.finishPlace);
+
+  finishedHorses.forEach(h => {
+    const pos = PODIUM_POSITIONS[h.finishPlace - 1];
+    const t = Math.min(1, (Date.now() - h.finishTime) / 2000);
+    if (t < 0.8) return; // Don't draw platform until horse is nearly there
+
+    const alpha = Math.min(1, (t - 0.8) / 0.2); // Fade in over last 20% of animation
+
+    // Platform glow
+    const glow = ctx.createRadialGradient(pos.x, pos.y + 8, 0, pos.x, pos.y + 8, 35);
+    glow.addColorStop(0, h.color + Math.floor(alpha * 20).toString(16).padStart(2, '0'));
+    glow.addColorStop(1, h.color + '00');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y + 8, 35, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Place label below
+    ctx.globalAlpha = alpha * 0.6;
+    ctx.font = '600 9px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = h.color;
+    const suffix = h.finishPlace === 1 ? 'st' : h.finishPlace === 2 ? 'nd' : h.finishPlace === 3 ? 'rd' : 'th';
+    ctx.fillText(h.finishPlace + suffix, pos.x, pos.y + 38);
+    ctx.globalAlpha = 1;
   });
 }
