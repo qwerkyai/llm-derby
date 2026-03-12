@@ -199,16 +199,21 @@
       <div id="stnd"></div>
     </div>
     <div class="pnl">
-      <div class="pnl-h">Betting</div>
+      <div class="pnl-h"><span>Betting</span><span class="bet-bal" id="betBal"></span></div>
       <div id="bettingArea">
-        <div class="bets" id="bets"></div>
-        <div id="betControls" style="display:none">
-          <div class="bet-input-row" id="betInputRow"></div>
-          <div class="bet-status" id="betStatus"></div>
+        <!-- Not signed in state -->
+        <div class="bet-signin" id="betSignin">
+          <div class="bet-signin-msg">Sign in to place bets</div>
+          <button class="btn btn-go btn-sm" onclick="showAuthModal()">Sign In</button>
         </div>
-        <div id="setupBetArea" style="text-align:center;margin-top:8px">
-          <button class="btn btn-go btn-sm" id="setupBetBtn" onclick="setupBetting()" style="display:none">Setup Betting</button>
-        </div>
+        <!-- Betting cards (shown when signed in) -->
+        <div class="bet-grid" id="betGrid" style="display:none"></div>
+        <!-- User's placed bets -->
+        <div class="bet-my" id="betMy" style="display:none"></div>
+        <!-- Status messages -->
+        <div class="bet-status" id="betStatus"></div>
+        <!-- Payout result -->
+        <div class="bet-result" id="betResult" style="display:none"></div>
       </div>
     </div>
     <div class="pnl">

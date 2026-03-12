@@ -26,6 +26,8 @@ let lastFrame = 0;
 let currentEventId = null;
 let poolUnsub = null;
 let livePools = {};
+let userBets = [];       // local cache of user's bets [{horse, amount}]
+let betsLocked = false;
 let isRegisterMode = false;
 
 // Canvas
@@ -40,7 +42,6 @@ onAuthStateChanged(async (user) => {
   authUser = user;
   const signInBtn = document.getElementById('signInBtn');
   const userPill = document.getElementById('userPill');
-  const setupBetBtn = document.getElementById('setupBetBtn');
 
   if (user) {
     signInBtn.style.display = 'none';
@@ -56,16 +57,27 @@ onAuthStateChanged(async (user) => {
     try {
       const balance = await getUserBalance(user.uid);
       document.getElementById('userBal').textContent = balance;
+      document.getElementById('betBal').textContent = '$' + balance;
     } catch (err) {
       console.error('Failed to load balance:', err);
       document.getElementById('userBal').textContent = '?';
+      document.getElementById('betBal').textContent = '$?';
     }
-    setupBetBtn.style.display = 'inline-block';
     hideAuthModal();
+
+    // Show betting panel and auto-create event
+    document.getElementById('betSignin').style.display = 'none';
+    document.getElementById('betGrid').style.display = 'grid';
+    if (!currentEventId && !running) {
+      await initBettingEvent();
+    }
   } else {
     signInBtn.style.display = 'inline-block';
     userPill.style.display = 'none';
-    setupBetBtn.style.display = 'none';
+    document.getElementById('betSignin').style.display = 'block';
+    document.getElementById('betGrid').style.display = 'none';
+    document.getElementById('betMy').style.display = 'none';
+    document.getElementById('betBal').textContent = '';
   }
 });
 
@@ -163,48 +175,39 @@ document.addEventListener('keydown', (e) => {
 
 // ---- BETTING UI ----
 
-window.setupBetting = async function() {
-  if (!authUser) return showAuthModal();
-  if (running) return; // Can't setup during race
-
+async function initBettingEvent() {
   try {
     currentEventId = await createEvent();
     if (!currentEventId) {
-      // Firebase not configured — show demo message
-      document.getElementById('betStatus').textContent = 'Demo mode — Firebase not configured';
+      document.getElementById('betStatus').textContent = 'Demo mode — no Firebase';
       return;
     }
-    showBetControls();
+    userBets = [];
+    betsLocked = false;
+    document.getElementById('betResult').style.display = 'none';
+    document.getElementById('betStatus').textContent = 'Place your bets before the race starts!';
+    document.getElementById('betStatus').className = 'bet-status';
 
     // Subscribe to real-time pool updates
+    if (poolUnsub) poolUnsub();
     poolUnsub = subscribeToPool(currentEventId, (data) => {
       livePools = data.pools;
+      // Re-render betting UI with new pool data
+      updBetting(horses, livePools, { locked: betsLocked, userBets, showInputs: !!authUser });
     });
+
+    // Initial render
+    updBetting(horses, livePools, { locked: false, userBets, showInputs: true });
   } catch (err) {
     console.error('Setup betting failed:', err);
     document.getElementById('betStatus').textContent = 'Error: ' + err.message;
   }
-};
-
-function showBetControls() {
-  const controls = document.getElementById('betControls');
-  controls.style.display = 'block';
-  document.getElementById('setupBetBtn').style.display = 'none';
-
-  let html = '';
-  horses.forEach(h => {
-    html += `<div class="bet-input-card">
-      <input type="number" id="betAmt${h.id}" min="1" placeholder="0" style="border-color:${h.color}40">
-      <button class="bet-place-btn" onclick="doBet(${h.id})">BET</button>
-    </div>`;
-  });
-  document.getElementById('betInputRow').innerHTML = html;
-  document.getElementById('betStatus').textContent = 'Place your bets!';
 }
 
 window.doBet = async function(horseId) {
-  if (!currentEventId || !authUser) return;
+  if (!currentEventId || !authUser || betsLocked) return;
   const input = document.getElementById('betAmt' + horseId);
+  if (!input) return;
   const amount = parseInt(input.value);
   if (!amount || amount < 1) return;
 
@@ -212,9 +215,13 @@ window.doBet = async function(horseId) {
     const success = await placeBet(currentEventId, horseId, amount);
     if (success) {
       input.value = '';
+      userBets.push({ horse: horseId, amount });
       const balance = await getUserBalance(authUser.uid);
       document.getElementById('userBal').textContent = balance;
-      document.getElementById('betStatus').textContent = `Bet ${amount} on ${horses[horseId].name}!`;
+      document.getElementById('betBal').textContent = '$' + balance;
+      document.getElementById('betStatus').textContent = `Bet $${amount} on ${horses[horseId].name}!`;
+      // Re-render with updated bets
+      updBetting(horses, livePools, { locked: false, userBets, showInputs: true });
     } else {
       document.getElementById('betStatus').textContent = 'Bet failed — check balance';
     }
@@ -460,14 +467,37 @@ function onFinish(h) {
     document.getElementById('liveBdg').style.display = 'none';
     announce('🎙️', 'What a race! All models have crossed the finish line!', 6000);
 
-    // Resolve betting
+    // Resolve betting and show results
     if (currentEventId && winnerId !== null) {
       resolveEvent(currentEventId, winnerId).then(async (payouts) => {
-        if (payouts && authUser) {
+        if (authUser) {
           const balance = await getUserBalance(authUser.uid);
           document.getElementById('userBal').textContent = balance;
-          document.getElementById('betStatus').textContent = 'Race over! Payouts distributed.';
+          document.getElementById('betBal').textContent = '$' + balance;
+
+          // Show payout result
+          const resultEl = document.getElementById('betResult');
+          const myPayout = payouts ? payouts.find(p => p.uid === authUser.uid) : null;
+          const myTotalBet = userBets.reduce((s, b) => s + b.amount, 0);
+
+          if (myTotalBet === 0) {
+            resultEl.className = 'bet-result';
+            resultEl.textContent = 'No bets placed this race';
+          } else if (myPayout && myPayout.payout > myTotalBet) {
+            const profit = Math.round(myPayout.payout - myTotalBet);
+            resultEl.className = 'bet-result win';
+            resultEl.textContent = `🎉 You won $${Math.round(myPayout.payout)}! (+$${profit} profit)`;
+          } else if (myPayout) {
+            resultEl.className = 'bet-result';
+            resultEl.textContent = `Refunded $${Math.round(myPayout.payout)}`;
+          } else {
+            resultEl.className = 'bet-result lose';
+            resultEl.textContent = `Better luck next time! Lost $${myTotalBet}`;
+          }
+          resultEl.style.display = 'block';
         }
+        document.getElementById('betStatus').textContent = 'Race complete — payouts distributed';
+        document.getElementById('betStatus').className = 'bet-status';
       });
     }
   }
@@ -493,7 +523,7 @@ function frame(ts) {
   if (Math.floor(ts / 200) !== Math.floor((ts - 16) / 200)) {
     updStandings(horses);
     updPerf(horses);
-    updBetting(horses);
+    updBetting(horses, livePools, { locked: betsLocked, userBets, showInputs: !!authUser && !betsLocked });
     if (running) checkAnnouncements(horses, elapsed);
   }
 
@@ -554,11 +584,10 @@ window.startRace = async function() {
   // Lock bets
   if (currentEventId) {
     await lockBets(currentEventId);
-    document.getElementById('betStatus').textContent = 'BETS LOCKED';
-    const inputs = document.querySelectorAll('[id^="betAmt"]');
-    inputs.forEach(i => i.disabled = true);
-    const btns = document.querySelectorAll('.bet-place-btn');
-    btns.forEach(b => b.disabled = true);
+    betsLocked = true;
+    document.getElementById('betStatus').textContent = '🔒 BETS LOCKED';
+    document.getElementById('betStatus').className = 'bet-status locked';
+    updBetting(horses, livePools, { locked: true, userBets, showInputs: false });
   }
 
   horses.forEach(h => {
@@ -607,17 +636,23 @@ window.resetRace = function() {
     b.classList.toggle('ac', i === 0);
   });
 
-  // Reset betting UI
-  document.getElementById('betControls').style.display = 'none';
-  if (authUser) {
-    document.getElementById('setupBetBtn').style.display = 'inline-block';
-  }
+  // Reset betting UI and create new event
+  userBets = [];
+  betsLocked = false;
+  document.getElementById('betResult').style.display = 'none';
+  document.getElementById('betStatus').textContent = '';
+  document.getElementById('betStatus').className = 'bet-status';
 
   horses.forEach(h => resetHorseState(h));
   resetUI(horses);
   updStandings(horses);
   updPerf(horses);
-  updBetting(horses);
+  updBetting(horses, {}, { showInputs: !!authUser, userBets });
+
+  // Auto-create new event if logged in
+  if (authUser) {
+    initBettingEvent();
+  }
 };
 
 window.setSpd = function(s, btn) {
@@ -711,10 +746,23 @@ window.toggleTTSInfo = function () {
 };
 
 // ---- INIT ----
-initAuth();
+const signInBtn = document.getElementById('signInBtn');
+signInBtn.textContent = 'Loading...';
+signInBtn.disabled = true;
+initAuth().then(() => {
+  if (!isFirebaseReady()) {
+    signInBtn.textContent = 'Sign In (offline)';
+  } else {
+    signInBtn.textContent = 'Sign In to Bet';
+  }
+  signInBtn.disabled = false;
+}).catch(() => {
+  signInBtn.textContent = 'Sign In to Bet';
+  signInBtn.disabled = false;
+});
 updStandings(horses);
 updPerf(horses);
-updBetting(horses);
+updBetting(horses, {}, { showInputs: false, userBets });
 horses.forEach(h => {
   document.getElementById('log' + h.id).innerHTML = '<div class="tdim">Ready.</div>';
 });

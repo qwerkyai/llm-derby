@@ -103,8 +103,7 @@ export async function initAuth() {
 
 export async function signInWithGoogle() {
   if (!firebaseReady || !auth) {
-    console.warn('Firebase not ready');
-    return null;
+    throw new Error('Authentication is still loading. Please try again in a moment.');
   }
   const { signInWithPopup, GoogleAuthProvider } = window._fbAuth;
   try {
@@ -117,7 +116,9 @@ export async function signInWithGoogle() {
 }
 
 export async function signInWithEmail(email, password) {
-  if (!firebaseReady || !auth) return null;
+  if (!firebaseReady || !auth) {
+    throw new Error('Authentication is still loading. Please try again in a moment.');
+  }
   const { signInWithEmailAndPassword } = window._fbAuth;
   try {
     const result = await signInWithEmailAndPassword(auth, email, password);
@@ -129,7 +130,9 @@ export async function signInWithEmail(email, password) {
 }
 
 export async function registerWithEmail(email, password, displayName) {
-  if (!firebaseReady || !auth) return null;
+  if (!firebaseReady || !auth) {
+    throw new Error('Authentication is still loading. Please try again in a moment.');
+  }
   const { createUserWithEmailAndPassword, updateProfile } = window._fbAuth;
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password);

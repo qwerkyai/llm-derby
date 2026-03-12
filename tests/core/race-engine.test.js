@@ -33,7 +33,7 @@ describe('createHorseState', () => {
   it('creates a horse with correct initial values', () => {
     const horse = createHorseState(BENCHMARK_DATA[0]);
     expect(horse.id).toBe(0);
-    expect(horse.name).toBe('Llama 3.1 3B');
+    expect(horse.name).toBe('Llama 3.2 3B');
     expect(horse.currentQ).toBe(0);
     expect(horse.correct).toBe(0);
     expect(horse.progress).toBe(0);
@@ -50,10 +50,11 @@ describe('createHorseState', () => {
 describe('initHorses', () => {
   it('creates horses from benchmark data', () => {
     const horses = initHorses(BENCHMARK_DATA);
-    expect(horses.length).toBe(3);
-    expect(horses[0].name).toBe('Llama 3.1 3B');
+    expect(horses.length).toBe(4);
+    expect(horses[0].name).toBe('Llama 3.2 3B');
     expect(horses[1].name).toBe('Qre Llama 3B');
     expect(horses[2].name).toBe('Qre Llama 8B');
+    expect(horses[3].name).toBe('Llama 3.1 8B');
   });
 });
 

@@ -1,12 +1,12 @@
 // ============================================================
-// FIREBASE CONFIG — placeholder, swap in real keys
+// FIREBASE CONFIG — llm-derby project
 // ============================================================
 
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: 'AIzaSyCqIkzJ70-Y5hEhfsAi52suoH3pXvYnQAc',
+  authDomain: 'llm-derby.firebaseapp.com',
+  projectId: 'llm-derby',
+  storageBucket: 'llm-derby.firebasestorage.app',
+  messagingSenderId: '895342614346',
+  appId: '1:895342614346:web:02f0bd2293f497cc8b13b3',
 };

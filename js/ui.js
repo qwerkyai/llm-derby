@@ -148,28 +148,75 @@ export function updPerf(horses) {
   });
 }
 
-// ---- BETTING (simulated odds, no Firebase) ----
+// ---- BETTING ----
 
-export function updBetting(horses) {
-  const scores = horses.map(h => {
-    const accScore = h.currentQ > 0 ? (h.correct / h.currentQ) : 0.4;
-    return h.progress * 0.6 + accScore * 0.4 + 0.01;
-  });
-  const total = scores.reduce((a, b) => a + b, 0);
-  const probs = scores.map(s => s / total);
-  const maxP = Math.max(...probs);
+// Renders betting cards with pool odds and bet inputs
+// pools: { horseId: totalAmount } from Firestore subscription
+// opts: { locked, userBets: [{horse, amount}], showInputs }
+export function updBetting(horses, pools = {}, opts = {}) {
+  const grid = document.getElementById('betGrid');
+  if (!grid) return;
+
+  const totalPool = Object.values(pools).reduce((a, b) => a + b, 0);
+  const locked = opts.locked || false;
+
+  // Calculate odds from pool data, or simulated if no bets
+  let odds = {};
+  if (totalPool > 0) {
+    horses.forEach(h => {
+      const pool = pools[h.id] || 0;
+      odds[h.id] = pool > 0 ? totalPool / pool : 0;
+    });
+  } else {
+    // Simulated odds when no bets placed
+    const scores = horses.map(h => {
+      const accScore = h.currentQ > 0 ? (h.correct / h.currentQ) : 0.25;
+      return h.progress * 0.5 + accScore * 0.5 + 0.01;
+    });
+    const total = scores.reduce((a, b) => a + b, 0);
+    horses.forEach((h, i) => {
+      odds[h.id] = total / scores[i];
+    });
+  }
+
+  const minOdds = Math.min(...Object.values(odds).filter(o => o > 0));
 
   let html = '';
-  horses.forEach((h, i) => {
-    const cents = Math.round(probs[i] * 100);
-    const isFav = probs[i] === maxP;
-    html += `<div class="bet-card${isFav ? ' fav' : ''}">` +
-      `<div class="bet-name" style="color:${h.color}">${h.emoji} ${h.name.split(' ')[0]}</div>` +
-      `<div class="bet-odds" style="color:${isFav ? 'var(--green)' : 'var(--text)'}">${cents}¢</div>` +
-      `<div class="bet-label">${isFav ? '★ FAVORITE' : 'WIN'}</div>` +
-      `</div>`;
+  horses.forEach(h => {
+    const pool = pools[h.id] || 0;
+    const odd = odds[h.id] || 0;
+    const isFav = odd > 0 && odd === minOdds;
+    const oddsStr = odd > 0 ? odd.toFixed(1) + 'x' : '—';
+    const poolStr = totalPool > 0 ? '$' + pool : '';
+
+    html += `<div class="bet-card${isFav ? ' fav' : ''}${locked ? ' locked' : ''}">` +
+      `<div class="bet-name" style="color:${h.color}">${h.emoji} ${h.name}</div>` +
+      `<div class="bet-odds" style="color:${isFav ? 'var(--green)' : 'var(--text)'}">${oddsStr}</div>` +
+      `<div class="bet-pool">${poolStr}</div>` +
+      `<div class="bet-label">${isFav ? '★ FAV' : 'WIN'}</div>`;
+
+    if (opts.showInputs && !locked) {
+      html += `<div class="bet-input">` +
+        `<input type="number" id="betAmt${h.id}" min="1" placeholder="$">` +
+        `<button class="bet-place-btn" onclick="doBet(${h.id})">BET</button>` +
+        `</div>`;
+    }
+    html += `</div>`;
   });
-  document.getElementById('bets').innerHTML = html;
+  grid.innerHTML = html;
+
+  // Update user's bets display
+  const myEl = document.getElementById('betMy');
+  if (opts.userBets && opts.userBets.length > 0) {
+    myEl.style.display = 'block';
+    myEl.innerHTML = '<div style="margin-bottom:2px;color:var(--text);font-weight:600">Your bets:</div>' +
+      opts.userBets.map(b => {
+        const horse = horses.find(h => h.id === b.horse);
+        return `<div class="bet-my-item"><span class="bet-my-horse" style="color:${horse ? horse.color : 'var(--text)'}">${horse ? horse.emoji + ' ' + horse.name : 'Horse ' + b.horse}</span><span class="bet-my-amt">$${b.amount}</span></div>`;
+      }).join('');
+  } else {
+    myEl.style.display = 'none';
+  }
 }
 
 // ---- CONFETTI ----

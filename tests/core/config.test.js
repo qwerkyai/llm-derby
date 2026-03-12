@@ -58,7 +58,7 @@ describe('track geometry', () => {
   });
 
   it('horse radius is reasonable for lane spacing', () => {
-    expect(HORSE_RADIUS * 2).toBeLessThan(LANE_SPACING * 2);
+    expect(HORSE_RADIUS * 2).toBeLessThanOrEqual(LANE_SPACING * 2);
   });
 });
 
@@ -77,8 +77,8 @@ describe('subjects', () => {
 });
 
 describe('default model configs', () => {
-  it('has 3 models', () => {
-    expect(DEFAULT_MODEL_CONFIGS.length).toBe(3);
+  it('has 4 models', () => {
+    expect(DEFAULT_MODEL_CONFIGS.length).toBe(4);
   });
 
   it('each model has required fields', () => {

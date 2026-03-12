@@ -124,15 +124,17 @@ export const SUBJECT_DIFFICULTY = {
   'Political Science': 0.4,
 };
 
-// --- Default Model Configs (demo mode) ---
+// --- Default Model Configs ---
+// Accuracy calibrated to real MMLU-Pro published benchmarks
+// Speed calibrated to real-world A100 inference measurements
 export const DEFAULT_MODEL_CONFIGS = [
   {
     id: 0,
-    name: 'Llama 3.1 3B',
+    name: 'Llama 3.2 3B',
     emoji: '\u{1F999}',
     color: '#6d8cff',
     baseTPS: 52,
-    targetCorrect: 120, // ~40% accuracy
+    targetCorrect: 110, // 36.5% accuracy (real MMLU-Pro)
     seed: 42,
   },
   {
@@ -141,7 +143,7 @@ export const DEFAULT_MODEL_CONFIGS = [
     emoji: '\u26A1',
     color: '#ff5e8a',
     baseTPS: 95,
-    targetCorrect: 105, // ~35% accuracy
+    targetCorrect: 110, // same accuracy as base 3B
     seed: 137,
   },
   {
@@ -150,7 +152,16 @@ export const DEFAULT_MODEL_CONFIGS = [
     emoji: '\u{1F3C7}',
     color: '#00d4a0',
     baseTPS: 50,
-    targetCorrect: 162, // ~54% accuracy
+    targetCorrect: 133, // 44.3% accuracy (same as base 8B)
     seed: 256,
+  },
+  {
+    id: 3,
+    name: 'Llama 3.1 8B',
+    emoji: '\u{1F999}',
+    color: '#f0a030',
+    baseTPS: 25,
+    targetCorrect: 133, // 44.3% accuracy (real MMLU-Pro)
+    seed: 512,
   },
 ];
